@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyMetaWebhook, sendWhatsAppMessage } from "@/app/lib/whatsapp";
 import { getVitalbaqAnswer } from "@/app/lib/ai-vitalbaq";
 
+export const maxDuration = 60;
+
 const NOMBRES: Record<string, string> = {
   "573013379407": "Andrés",
 };
