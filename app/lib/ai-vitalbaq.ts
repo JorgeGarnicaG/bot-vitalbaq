@@ -20,12 +20,16 @@ REGLAS:
 5. No inventes datos ni hagas suposiciones.
 6. Si te preguntan algo que no está en los módulos disponibles, explica qué módulos tienes.`;
 
-export async function getVitalbaqAnswer(userMessage: string): Promise<string> {
+export async function getVitalbaqAnswer(userMessage: string, nombre?: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return "Error: OPENAI_API_KEY no configurada.";
 
   const context = await buildVitalbaqContext();
   const openai = new OpenAI({ apiKey });
+
+  const userContext = nombre
+    ? `El usuario que pregunta se llama ${nombre}. Dirígete a él por su nombre cuando sea natural.\n\n`
+    : "";
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -33,7 +37,7 @@ export async function getVitalbaqAnswer(userMessage: string): Promise<string> {
       { role: "system", content: systemPrompt },
       {
         role: "user",
-        content: `=== DATOS VITALBAQ (tiempo real desde Supabase) ===\n${context}\n\n=== PREGUNTA ===\n${userMessage}`,
+        content: `${userContext}=== DATOS VITALBAQ (tiempo real desde Supabase) ===\n${context}\n\n=== PREGUNTA ===\n${userMessage}`,
       },
     ],
     max_tokens: 1000,
