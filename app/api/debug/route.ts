@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseClient } from "@/app/lib/supabase";
-import { buildVitalbaqContext } from "@/app/lib/supabase";
+import { buildVitalbaqContext, getSupabaseClient } from "@/app/lib/supabase";
 
 export async function GET() {
   const envCheck = {
@@ -11,20 +10,24 @@ export async function GET() {
     SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
   };
 
-  // Prueba rápida de conexión Supabase
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ ok: false, env: envCheck, error: "SUPABASE_SERVICE_ROLE_KEY no configurada" }, { status: 500 });
+  }
+
   const sb = getSupabaseClient();
+
   const tablas = [
     "empleados", "novedades", "incapacidades", "liquidaciones", "empresas_temporales",
-    "pedidos", "detalle_pedidos", "remisiones", "detalle_remisiones",
-    "items", "bodegas", "stock_bodega", "transferencias",
+    "pedidos", "detalle_pedidos", "remisiones",
+    "items", "bodegas", "stock_bodega",
     "proveedores", "proveedor_categorias", "precios_historicos",
     "activos", "mantenimientos_activos", "solicitudes_mantenimiento",
-    "turnos", "rotaciones",
+    "rotaciones", "turnos",
     "sesiones_nutricionales", "remisiones_nutricionales", "precios_dieta",
     "empresa_areas", "empresa_cargos", "empresa_sedes",
   ];
 
-  const tablaStatus: Record<string, string | number> = {};
+  const tablaStatus: Record<string, number | string> = {};
   await Promise.allSettled(
     tablas.map(async (t) => {
       const { count, error } = await sb.from(t).select("*", { count: "exact", head: true });
@@ -34,12 +37,16 @@ export async function GET() {
 
   try {
     const context = await buildVitalbaqContext();
+    const kb = Math.round(context.length / 1024);
+    const tokens = Math.round(context.length / 4);
     return NextResponse.json({
       ok: true,
       env: envCheck,
       tablas: tablaStatus,
-      contextLength: context.length,
-      contextKB: Math.round(context.length / 1024),
+      contextKB: kb,
+      estimatedTokens: tokens,
+      tokenLimit: 128000,
+      withinLimit: tokens < 100000,
     });
   } catch (e) {
     return NextResponse.json(
