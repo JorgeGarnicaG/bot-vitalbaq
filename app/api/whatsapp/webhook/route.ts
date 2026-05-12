@@ -72,12 +72,29 @@ export async function POST(request: NextRequest) {
         from,
         "🏭 *VitalBAQ — Asistente Empresarial*\n\n" +
         "Puedes preguntarme sobre:\n\n" +
-        "• 👥 Empleados y nómina\n" +
-        "• 📦 Pedidos a proveedores\n" +
-        "• 🏪 Inventario y stock\n" +
-        "• 🤝 Proveedores\n" +
-        "• ⚙️ Activos y equipos\n" +
-        "• 🍽️ Sesiones nutricionales\n\n" +
+        "👥 *Nómina*\n" +
+        "• Empleados, cargos, salarios, contratos\n" +
+        "• Novedades (ingresos/deducciones) por mes\n" +
+        "• Incapacidades y liquidaciones\n" +
+        "• Personal EFISERVICIOS / WORK\n\n" +
+        "🛒 *Compras y Pedidos*\n" +
+        "• Órdenes de compra y su estado\n" +
+        "• Remisiones y recepción de mercancía\n\n" +
+        "📦 *Inventario*\n" +
+        "• Stock por producto y por bodega\n" +
+        "• Transferencias entre bodegas\n\n" +
+        "🤝 *Proveedores*\n" +
+        "• Directorio y contactos\n" +
+        "• Historial y comparativo de precios\n\n" +
+        "⚙️ *Activos y Mantenimiento*\n" +
+        "• Equipos, estado y responsables\n" +
+        "• Historial y solicitudes de mantenimiento\n\n" +
+        "🔄 *Rotación de Personal*\n" +
+        "• Turnos y horarios\n" +
+        "• Historial de rotaciones por sede\n\n" +
+        "🍽️ *Nutrición*\n" +
+        "• Sesiones nutricionales y dietas\n" +
+        "• Remisiones por sede y precios\n\n" +
         "Escribe *AYUDA* para ver este menú."
       );
       return new NextResponse(null, { status: 200 });
