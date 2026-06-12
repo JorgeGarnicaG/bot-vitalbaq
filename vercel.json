@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/empleados-10-meses",
+      "schedule": "0 13 * * *"
+    }
+  ]
+}
