@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const respuesta = await getVitalbaqAnswer(body, nombre ?? undefined);
+      const respuesta = await getVitalbaqAnswer(body, nombre ?? undefined, from);
       await sendWhatsAppMessage(from, respuesta);
     } catch (e) {
       console.error("[VitalBAQ webhook IA]", e);
