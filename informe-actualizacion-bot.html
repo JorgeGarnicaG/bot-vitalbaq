@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Informe de Sesión de Desarrollo — VitalBAQ S.A.S. — Zelia</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 11.5pt;
+      color: #111;
+      background: #fff;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 4px solid #006837;
+      border-bottom: 2px solid #C8102E;
+      padding: 14px 0;
+      margin-bottom: 28px;
+      gap: 20px;
+    }
+    .header-logo { font-size: 26pt; font-weight: 900; letter-spacing: 4px; color: #607B74; font-family: 'Georgia', serif; text-transform: uppercase; }
+    .header-center { flex: 1; text-align: center; }
+    .header-center h1 { font-size: 13pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #111; }
+    .header-center p { font-size: 9.5pt; color: #555; margin-top: 2px; }
+    .header-code { text-align: right; font-size: 9pt; color: #555; line-height: 1.7; }
+
+    .section { margin-bottom: 24px; }
+    .section-title {
+      background: #006837; color: #fff;
+      font-size: 10.5pt; font-weight: bold;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 5px 12px; margin-bottom: 10px;
+    }
+    .section-title.amber { background: #c9a84c; color: #1a1a2e; }
+    .section-title.navy  { background: #1a1a2e; }
+    .section-title.teal  { background: #607B74; }
+    .section-title.red   { background: #C8102E; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
+    th, td { border: 1px solid #bbb; padding: 7px 10px; vertical-align: top; }
+    th { background: #f2f2f2; font-weight: bold; text-align: left; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid #bbb; }
+    .field-item { display: flex; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; }
+    .field-item:nth-child(even) { border-right: none; }
+    .field-item.full { grid-column: 1 / -1; border-right: none; }
+    .field-label { background: #f2f2f2; font-weight: bold; font-size: 9.5pt; padding: 6px 10px; min-width: 160px; border-right: 1px solid #ddd; }
+    .field-value { padding: 6px 10px; font-size: 10.5pt; flex: 1; }
+
+    .badge { display: inline-block; font-size: 8.5pt; padding: 2px 9px; border-radius: 3px; font-weight: bold; color: #fff; vertical-align: middle; }
+    .badge.green  { background: #006837; }
+    .badge.red    { background: #C8102E; }
+    .badge.amber  { background: #c9a84c; color: #1a1a2e; }
+    .badge.teal   { background: #607B74; }
+    .badge.navy   { background: #1a1a2e; }
+
+    .clause { font-size: 10.5pt; text-align: justify; padding: 8px 12px; border-left: 3px solid #006837; background: #f9f9f9; margin-bottom: 10px; }
+    .clause.teal  { border-left-color: #607B74; background: #f4f8f7; }
+    .clause.amber { border-left-color: #c9a84c; background: #fffdf5; }
+    .clause.red   { border-left-color: #C8102E; background: #fff5f5; }
+
+    .change-block { border: 1px solid #ccc; border-radius: 4px; margin-bottom: 14px; overflow: hidden; }
+    .change-block-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px; font-weight: bold; font-size: 10.5pt;
+      background: #e8f5ec; color: #006837; border-bottom: 2px solid #006837;
+    }
+    .change-block-body { padding: 10px 14px; font-size: 10pt; color: #333; }
+    .change-block-body li { padding: 3px 0 3px 16px; position: relative; list-style: none; }
+    .change-block-body li:before { content: '✓'; position: absolute; left: 0; color: #006837; font-weight: bold; }
+
+    .before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .col-before, .col-after { border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+    .col-before .col-head { background: #fff0f0; color: #8b0000; border-bottom: 2px solid #C8102E; padding: 6px 12px; font-weight: bold; font-size: 9.5pt; }
+    .col-after  .col-head { background: #e8f5ec; color: #006837; border-bottom: 2px solid #006837; padding: 6px 12px; font-weight: bold; font-size: 9.5pt; }
+    .col-body { padding: 8px 12px; font-size: 9.5pt; color: #333; }
+    .col-body li { padding: 2px 0 2px 14px; position: relative; list-style: none; }
+    .col-body li:before { content: '→'; position: absolute; left: 0; color: #606060; }
+
+    .timeline { border-left: 3px solid #607B74; padding-left: 18px; margin-top: 6px; }
+    .timeline-item { margin-bottom: 12px; position: relative; }
+    .timeline-item:before { content: ''; position: absolute; left: -23px; top: 5px; width: 10px; height: 10px; background: #607B74; border-radius: 50%; }
+    .timeline-item .time { font-size: 9pt; color: #888; }
+    .timeline-item .desc { font-size: 10.5pt; font-weight: bold; }
+    .timeline-item .detail { font-size: 9.5pt; color: #444; }
+
+    .signature-block { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; margin-top: 20px; }
+    .signer .space { height: 55px; border-bottom: 1px dashed #aaa; margin-bottom: 6px; }
+    .signer p { font-size: 10pt; margin-bottom: 2px; }
+    .signer .name { font-weight: bold; font-size: 11pt; }
+    .signer .role { color: #555; font-size: 9.5pt; }
+
+    .footer { margin-top: 30px; border-top: 2px solid #006837; padding-top: 8px; font-size: 8.5pt; color: #777; text-align: center; }
+
+    @media print {
+      body { padding: 20px; }
+      .section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ENCABEZADO -->
+  <div class="header">
+    <div class="header-logo">Zelia</div>
+    <div class="header-center">
+      <h1>Informe de Sesión de Desarrollo</h1>
+      <p>VitalBAQ S.A.S. · Resumen de cambios implementados · 23 de junio de 2026</p>
+    </div>
+    <div class="header-code">
+      <strong>Ref:</strong> VTB-SES-002<br>
+      <strong>Fecha:</strong> 23 de junio de 2026<br>
+      <strong>Versión:</strong> 1.0
+    </div>
+  </div>
+
+  <!-- 1. DATOS GENERALES -->
+  <div class="section">
+    <div class="section-title">1. Datos Generales</div>
+    <div class="field-grid">
+      <div class="field-item">
+        <div class="field-label">Cliente</div>
+        <div class="field-value">VITALBAQ S.A.S. · NIT 901.183.520-1</div>
+      </div>
+      <div class="field-item">
+        <div class="field-label">Responsable cliente</div>
+        <div class="field-value">Andrés Leonardo Monroy Luna</div>
+      </div>
+      <div class="field-item">
+        <div class="field-label">Proveedor tecnológico</div>
+        <div class="field-value">Zelia · gerencia@zelia-online.com · +57 324 5996497</div>
+      </div>
+      <div class="field-item">
+        <div class="field-label">Fecha de sesión</div>
+        <div class="field-value">Martes 23 de junio de 2026</div>
+      </div>
+      <div class="field-item full">
+        <div class="field-label">Sistemas intervenidos</div>
+        <div class="field-value">Panel de Gestión VitalBAQ (vitalbaq.zeliameridian.com) · Bot WhatsApp IA (+57 300 3415701)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. RESUMEN EJECUTIVO -->
+  <div class="section">
+    <div class="section-title teal">2. Resumen Ejecutivo</div>
+    <div class="clause teal">
+      Durante la sesión del 23 de junio de 2026 se implementaron <strong>tres mejoras</strong> al sistema VitalBAQ:
+      dos en el panel de gestión web (módulos Cafetería y Bodega) y una en el Bot WhatsApp IA.
+      Todos los cambios fueron deployados en producción y están disponibles para uso inmediato.
+    </div>
+  </div>
+
+  <!-- 3. CAMBIOS IMPLEMENTADOS -->
+  <div class="section">
+    <div class="section-title">3. Cambios Implementados</div>
+
+    <!-- CAMBIO 1: CAFETERÍA -->
+    <div class="change-block">
+      <div class="change-block-header">
+        <span>Cambio 1 — Módulo Cafetería: Campo de pago y cálculo de cambio</span>
+        <span class="badge green">Desplegado</span>
+      </div>
+      <div class="change-block-body">
+        <p style="margin-bottom:8px;">Se agregó la funcionalidad de caja completa en el punto de venta de las cafeterías (BAQ y Adelita). El operario ahora puede registrar el valor recibido del cliente y el sistema calcula automáticamente el cambio a devolver.</p>
+        <ul>
+          <li>Campo de ingreso "Pago del cliente" en el carrito de venta</li>
+          <li>Cálculo automático del cambio a devolver, mostrado en <strong style="color:#006837">verde</strong></li>
+          <li>Si el pago no cubre el total, se muestra el faltante en <strong style="color:#C8102E">rojo</strong></li>
+          <li>El botón "Registrar venta" se bloquea automáticamente si el pago es insuficiente, evitando errores de caja</li>
+        </ul>
+        <div class="before-after" style="margin-top:10px;">
+          <div class="col-before">
+            <div class="col-head">Antes</div>
+            <div class="col-body"><ul><li>No había campo de pago</li><li>El operario calculaba el cambio manualmente</li><li>No había validación — se podía registrar venta sin pago suficiente</li></ul></div>
+          </div>
+          <div class="col-after">
+            <div class="col-head">Después</div>
+            <div class="col-body"><ul><li>Campo de pago integrado en el carrito</li><li>Cambio calculado automáticamente en pantalla</li><li>Botón bloqueado si el pago es insuficiente</li></ul></div>
+          </div>
+        </div>
+        <p style="margin-top:10px; font-size:9.5pt; color:#555;"><strong>Archivos:</strong> apps/web-vitalbaq/app/(dashboard)/cafeteria/page.tsx &nbsp;·&nbsp; <strong>Commit:</strong> 0736842</p>
+      </div>
+    </div>
+
+    <!-- CAMBIO 2: BODEGA -->
+    <div class="change-block">
+      <div class="change-block-header">
+        <span>Cambio 2 — Módulo Bodega: Tab "Despacho a Producción"</span>
+        <span class="badge green">Desplegado</span>
+      </div>
+      <div class="change-block-body">
+        <p style="margin-bottom:8px;">Se agregó una nueva pestaña en el módulo de Bodega para registrar salidas de materia prima destinadas a las cafeterías, diferenciándola del flujo de Despachos a Cocina (que corresponde a clínicas y hospitales).</p>
+        <ul>
+          <li>Nueva tab <strong>"Despacho a Producción"</strong> dentro del módulo Bodega</li>
+          <li>Permite registrar salidas de inventario hacia cafeterías (BAQ y Adelita)</li>
+          <li>Al confirmar el despacho, el stock se reduce automáticamente</li>
+          <li>Se diferencia del flujo existente "Despachos a Cocina" (clínicas/hospitales), evitando confusiones operativas</li>
+          <li>Se añadió campo de <strong>tipo</strong> en los pedidos de cocina para mayor trazabilidad</li>
+        </ul>
+        <div class="before-after" style="margin-top:10px;">
+          <div class="col-before">
+            <div class="col-head">Antes</div>
+            <div class="col-body"><ul><li>Solo existía "Despachos a Cocina" (hospitales)</li><li>No había forma de registrar salidas específicas para cafeterías</li></ul></div>
+          </div>
+          <div class="col-after">
+            <div class="col-head">Después</div>
+            <div class="col-body"><ul><li>Tab independiente para cafeterías</li><li>Reducción de stock automática al confirmar</li><li>Trazabilidad separada por destino</li></ul></div>
+          </div>
+        </div>
+        <p style="margin-top:10px; font-size:9.5pt; color:#555;"><strong>Archivos:</strong> bodega/page.tsx · layout.tsx · cocina.types.ts &nbsp;·&nbsp; <strong>Commit:</strong> dfa1236</p>
+      </div>
+    </div>
+
+    <!-- CAMBIO 3: BOT -->
+    <div class="change-block">
+      <div class="change-block-header">
+        <span>Cambio 3 — Bot WhatsApp IA: Migración a Claude (Anthropic)</span>
+        <span class="badge green">Desplegado</span>
+      </div>
+      <div class="change-block-body">
+        <p style="margin-bottom:8px;">Se migró el motor de inteligencia artificial del Bot WhatsApp de <strong>OpenAI GPT-4o Mini</strong> a <strong>Claude Sonnet 4.6 (Anthropic)</strong>, mejorando la comprensión semántica y resolviendo respuestas incorrectas ante consultas válidas.</p>
+        <div class="clause red" style="margin:8px 0; font-size:10pt;">
+          <strong>Problema detectado:</strong> Al escribir "vencimientos de contratos", el bot respondía
+          "No tengo información sobre los vencimientos de contratos de los empleados", ignorando la columna
+          <em>fecha_fin</em> de la tabla <em>empleados</em> que contiene esa información.
+        </div>
+        <ul>
+          <li>Reemplazo del cliente OpenAI por <code>@anthropic-ai/sdk</code></li>
+          <li>Adaptación del formato <em>tool use</em> al estándar de Anthropic</li>
+          <li>Regla explícita agregada: "vencimientos de contratos" → columna <em>fecha_fin</em> en tabla <em>empleados</em></li>
+          <li>Configuración de <code>ANTHROPIC_API_KEY</code> en variables de entorno de Vercel (Production)</li>
+          <li>Redeploy forzado a producción para activar las nuevas variables</li>
+        </ul>
+        <div class="before-after" style="margin-top:10px;">
+          <div class="col-before">
+            <div class="col-head">Antes — OpenAI GPT-4o Mini</div>
+            <div class="col-body"><ul><li>Comprensión limitada de consultas coloquiales</li><li>Fallos en mapeo lenguaje natural → estructura de datos</li><li>Respuestas vacías en consultas con datos reales</li></ul></div>
+          </div>
+          <div class="col-after">
+            <div class="col-head">Después — Claude Sonnet 4.6</div>
+            <div class="col-body"><ul><li>Mayor comprensión semántica y contextual</li><li>Mapeo preciso de consultas a tablas de Supabase</li><li>Respuestas completas y estructuradas</li></ul></div>
+          </div>
+        </div>
+        <p style="margin-top:10px; font-size:9.5pt; color:#555;"><strong>Archivo:</strong> app/lib/ai-vitalbaq.ts &nbsp;·&nbsp; <strong>Commit:</strong> df10d85 &nbsp;·&nbsp; <strong>Bot:</strong> +57 300 3415701</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. CRONOLOGÍA DE LA SESIÓN -->
+  <div class="section">
+    <div class="section-title navy">4. Cronología de la Sesión</div>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="time">14:10 p.m.</div>
+        <div class="desc">Cafetería — Campo pago y cambio en caja</div>
+        <div class="detail">Implementación y deploy del cálculo automático de cambio en punto de venta.</div>
+      </div>
+      <div class="timeline-item">
+        <div class="time">16:35 p.m.</div>
+        <div class="desc">Bodega — Tab Despacho a Producción</div>
+        <div class="detail">Nueva tab para registrar salidas de materia prima a cafeterías con reducción de stock automática.</div>
+      </div>
+      <div class="timeline-item">
+        <div class="time">17:05 p.m.</div>
+        <div class="desc">Bot WhatsApp — Diagnóstico del problema</div>
+        <div class="detail">Identificación de respuestas incorrectas ante consulta "vencimientos de contratos".</div>
+      </div>
+      <div class="timeline-item">
+        <div class="time">17:30 p.m.</div>
+        <div class="desc">Bot WhatsApp — Migración a Claude (Anthropic)</div>
+        <div class="detail">Reemplazo de motor IA, configuración de API Key y reparación de repositorio git.</div>
+      </div>
+      <div class="timeline-item">
+        <div class="time">18:50 p.m.</div>
+        <div class="desc">Deploy final a producción</div>
+        <div class="detail">Redeploy forzado en Vercel para activar ANTHROPIC_API_KEY. Todos los cambios en producción.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. ESTADO DEL SISTEMA -->
+  <div class="section">
+    <div class="section-title">5. Estado del Sistema al Cierre de Sesión</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Módulo</th>
+          <th>Cambio</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cafetería</strong></td>
+          <td>Campo pago + cálculo de cambio en caja</td>
+          <td><span class="badge green">Producción</span></td>
+        </tr>
+        <tr>
+          <td><strong>Bodega</strong></td>
+          <td>Tab "Despacho a Producción" para cafeterías</td>
+          <td><span class="badge green">Producción</span></td>
+        </tr>
+        <tr>
+          <td><strong>Bot WhatsApp IA</strong></td>
+          <td>Motor migrado a Claude Sonnet 4.6 (Anthropic)</td>
+          <td><span class="badge green">Producción</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <div class="field-grid">
+      <div class="field-item">
+        <div class="field-label">Panel de gestión</div>
+        <div class="field-value">vitalbaq.zeliameridian.com</div>
+      </div>
+      <div class="field-item">
+        <div class="field-label">Bot WhatsApp</div>
+        <div class="field-value">+57 300 3415701</div>
+      </div>
+      <div class="field-item">
+        <div class="field-label">Motor IA activo</div>
+        <div class="field-value"><span class="badge green">Claude Sonnet 4.6 — Anthropic</span></div>
+      </div>
+      <div class="field-item">
+        <div class="field-label">Base de datos</div>
+        <div class="field-value"><span class="badge teal">Supabase — Activa</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRMAS -->
+  <div class="section">
+    <div class="section-title amber">Elaborado por</div>
+    <div class="signature-block">
+      <div class="signer">
+        <div class="space"></div>
+        <p class="name">Jorge Luis Garnica</p>
+        <p class="role">CEO & Founder — Zelia</p>
+        <p class="role">gerencia@zelia-online.com · +57 324 5996497</p>
+      </div>
+      <div class="signer">
+        <div class="space"></div>
+        <p class="name">Andrés Leonardo Monroy Luna</p>
+        <p class="role">Representante Legal — VITALBAQ S.A.S.</p>
+        <p class="role">contabilidad@vitalbaq.com</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Zelia · gerencia@zelia-online.com · +57 324 5996497 · zeliameridian.com<br>
+    Documento generado el 23 de junio de 2026 · Confidencial — Uso exclusivo VITALBAQ S.A.S.
+  </div>
+
+</body>
+</html>
