@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/empleados-10-meses",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/cierre-caja",
+      "schedule": "0 0 * * *"
     }
   ]
 }
