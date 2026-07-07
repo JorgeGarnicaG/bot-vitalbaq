@@ -89,8 +89,50 @@ export async function GET(request: NextRequest) {
     0
   );
 
+  // ── 5. Ventas de Cafetería (BAQ / Adelita) ─────────────────────────────────
+  const { data: ventasCafe } = await sb
+    .from("ventas_cafeteria")
+    .select("total_ref,detalle_ventas_cafeteria(nombre,cantidad,unidad,subtotal),pagos_venta_cafeteria(metodo,monto)")
+    .eq("fecha", hoy);
+
+  type DetalleCafeRow = { nombre: string; cantidad: number; unidad: string; subtotal: number };
+  type PagoCafeRow = { metodo: string; monto: number };
+  type VentaCafeRow = {
+    total_ref: number;
+    detalle_ventas_cafeteria: DetalleCafeRow[] | null;
+    pagos_venta_cafeteria: PagoCafeRow[] | null;
+  };
+
+  const ventasCafeHoy = (ventasCafe ?? []) as unknown as VentaCafeRow[];
+  const totalVentasCafe = ventasCafeHoy.reduce((s, v) => s + (v.total_ref ?? 0), 0);
+
+  let efectivoCafe = 0;
+  let transferenciaCafe = 0;
+  const itemsCafeMap: Record<string, { cantidad: number; unidad: string; subtotal: number }> = {};
+
+  for (const v of ventasCafeHoy) {
+    for (const p of v.pagos_venta_cafeteria ?? []) {
+      if (p.metodo === "efectivo") efectivoCafe += p.monto ?? 0;
+      else if (p.metodo === "transferencia") transferenciaCafe += p.monto ?? 0;
+    }
+    for (const d of v.detalle_ventas_cafeteria ?? []) {
+      if (!itemsCafeMap[d.nombre]) itemsCafeMap[d.nombre] = { cantidad: 0, unidad: d.unidad, subtotal: 0 };
+      itemsCafeMap[d.nombre].cantidad += Number(d.cantidad ?? 0);
+      itemsCafeMap[d.nombre].subtotal += Number(d.subtotal ?? 0);
+    }
+  }
+
+  const itemsCafeOrdenados = Object.entries(itemsCafeMap).sort((a, b) => b[1].subtotal - a[1].subtotal);
+
+  const lineasCafeItems =
+    itemsCafeOrdenados.length > 0
+      ? itemsCafeOrdenados
+          .map(([nombre, d]) => `  • ${nombre} ×${d.cantidad} ${d.unidad} — ${cop(d.subtotal)}`)
+          .join("\n")
+      : "  Sin ventas";
+
   // ── Construir mensaje ──────────────────────────────────────────────────────
-  const totalIngresosHoy = totalVentasSesiones + totalVentasRemisNut;
+  const totalIngresosHoy = totalVentasSesiones + totalVentasRemisNut + totalVentasCafe;
 
   const lineasTipo =
     Object.entries(porTipo).length > 0
@@ -136,6 +178,12 @@ export async function GET(request: NextRequest) {
     `• Ventas externas: ${cop(totalVentasRemisNut)}`,
     lineasSede,
     ``,
+    `🧃 *CAFETERÍA BAQ / ADELITA (${ventasCafeHoy.length} ventas)*`,
+    lineasCafeItems,
+    ventasCafeHoy.length > 0
+      ? `• Total: ${cop(totalVentasCafe)} — Efectivo: ${cop(efectivoCafe)} · Transferencia: ${cop(transferenciaCafe)}`
+      : "",
+    ``,
     `📦 *PEDIDOS DEL DÍA (${pedidosHoy.length})*`,
     lineasPedidos,
     pedidosHoy.length > 0 ? `• Total pedidos: ${cop(totalPedidos)}` : "",
@@ -164,6 +212,9 @@ export async function GET(request: NextRequest) {
     resumen: {
       ventas_internas: totalVentasSesiones,
       ventas_externas: totalVentasRemisNut,
+      ventas_cafeteria: totalVentasCafe,
+      cafeteria_efectivo: efectivoCafe,
+      cafeteria_transferencia: transferenciaCafe,
       total_ingresos: totalIngresosHoy,
       total_compras: totalRemisCompra,
       pedidos: pedidosHoy.length,
