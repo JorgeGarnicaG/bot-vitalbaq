@@ -84,7 +84,13 @@ export async function getVitalbaqAnswer(userMessage: string, nombre?: string, te
     ? `El usuario que pregunta se llama ${nombre}. Dirígete a él por su nombre cuando sea natural.\n\n`
     : "";
 
-  const systemPrompt = `${systemPromptBase}\n\n=== TABLAS DISPONIBLES (filas actuales y columnas conocidas) ===\n${catalogo}`;
+  // Bloque fijo (cacheable) separado del catálogo dinámico (cambia con los datos).
+  // Así las instrucciones base no se refacturan completas en cada iteración del loop
+  // de herramientas ni en cada conversación nueva.
+  const systemPrompt: Anthropic.TextBlockParam[] = [
+    { type: "text", text: systemPromptBase, cache_control: { type: "ephemeral" } },
+    { type: "text", text: `=== TABLAS DISPONIBLES (filas actuales y columnas conocidas) ===\n${catalogo}` },
+  ];
 
   const messages: Anthropic.MessageParam[] = [
     { role: "user", content: `${userContext}${userMessage}` },
@@ -94,8 +100,9 @@ export async function getVitalbaqAnswer(userMessage: string, nombre?: string, te
 
   for (let i = 0; i < MAX_ITERACIONES; i++) {
     const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
+      model: "claude-sonnet-5",
       max_tokens: 1024,
+      thinking: { type: "disabled" },
       system: systemPrompt,
       tools: [tool],
       messages,
