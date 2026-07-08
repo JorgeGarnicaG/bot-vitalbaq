@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { buildResumenContexto, consultarTabla, getSupabaseClient } from "@/app/lib/supabase";
 import { getVitalbaqAnswer } from "@/app/lib/ai-vitalbaq";
 import { TABLAS } from "@/app/lib/db-schema";
+import { construirCierreCaja, hoyBogota } from "@/app/lib/cierre-caja";
 
 export const maxDuration = 60;
 
@@ -10,6 +11,16 @@ export async function GET(request: NextRequest) {
   if (pregunta) {
     const respuesta = await getVitalbaqAnswer(pregunta);
     return NextResponse.json({ pregunta, respuesta });
+  }
+
+  // Vista previa del informe de cierre de caja — arma el mismo mensaje que
+  // el cron envía por WhatsApp, pero SIN enviarlo (solo lectura).
+  const previewCierre = request.nextUrl.searchParams.get("cierreCaja");
+  if (previewCierre) {
+    const fecha = request.nextUrl.searchParams.get("fecha") || hoyBogota();
+    const sb = getSupabaseClient();
+    const { mensaje, resumen } = await construirCierreCaja(sb, fecha);
+    return NextResponse.json({ fecha, mensaje, resumen });
   }
 
   const envCheck = {
