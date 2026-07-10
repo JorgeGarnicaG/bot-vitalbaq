@@ -16,9 +16,9 @@ const ANDRES_PHONE = "573013379407";
 
 // Andrés casi nunca le escribe al bot, así que el texto libre se pierde por
 // la ventana de 24 h de WhatsApp (error 131047). A él se le envía una
-// plantilla aprobada por Meta — esas se entregan siempre — con las cifras
-// del día; si responde VER, el webhook le manda el informe completo.
-const PLANTILLA_CIERRE = "cierre_caja_diario";
+// plantilla aprobada por Meta — esas se entregan siempre — con el resumen
+// de toda la operación; si responde VER, el webhook le manda el detalle.
+const PLANTILLA_CIERRE = "informe_diario_vitalbaq";
 
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -34,10 +34,20 @@ export async function GET(request: NextRequest) {
 
   // ── Andrés: plantilla (entrega garantizada sin ventana de 24 h) ────────────
   try {
+    // Los 12 parámetros deben coincidir 1 a 1 con las variables {{1}}..{{12}}
+    // de la plantilla aprobada en Meta.
     await sendWhatsAppTemplate(ANDRES_PHONE, PLANTILLA_CIERRE, [
       fechaLegible(hoy),
-      cop(resumen.total_ingresos),
+      String(resumen.sesiones),
+      String(resumen.pacientes),
+      cop(resumen.ventas_internas),
+      cop(resumen.ventas_externas),
+      String(resumen.ventas_cafeteria_num),
+      cop(resumen.ventas_cafeteria),
+      String(resumen.pedidos),
+      cop(resumen.pedidos_valor),
       cop(resumen.total_compras),
+      cop(resumen.total_ingresos),
       cop(resumen.total_ingresos - resumen.total_compras),
     ]);
     await registrarEnvio(sb, { tipo: "cierre-caja-plantilla", destinatario: ANDRES_PHONE, ok: true });

@@ -191,14 +191,18 @@ export async function construirCierreCaja(sb: SupabaseClient<any, any, any>, hoy
   return {
     mensaje,
     resumen: {
+      sesiones: sesionesHoy.length,
+      pacientes: totalPacientes,
       ventas_internas: totalVentasSesiones,
       ventas_externas: totalVentasRemisNut,
+      ventas_cafeteria_num: ventasCafeHoy.length,
       ventas_cafeteria: totalVentasCafe,
       cafeteria_efectivo: efectivoCafe,
       cafeteria_transferencia: transferenciaCafe,
       total_ingresos: totalIngresosHoy,
       total_compras: totalRemisCompra,
       pedidos: pedidosHoy.length,
+      pedidos_valor: totalPedidos,
     },
   };
 }
