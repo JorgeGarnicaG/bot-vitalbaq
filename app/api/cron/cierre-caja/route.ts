@@ -7,7 +7,10 @@ import { registrarEnvio } from "@/app/lib/envios-log";
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
 
-const ANDRES_PHONE = "573013379407";
+const DESTINATARIOS = [
+  "573013379407", // Andrés (dueño VitalBAQ)
+  "573214650092", // Jorge (Zelia)
+];
 
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -20,21 +23,30 @@ export async function GET(request: NextRequest) {
 
   const { mensaje, resumen } = await construirCierreCaja(sb, hoy);
 
-  try {
-    await sendWhatsAppMessage(ANDRES_PHONE, mensaje);
-  } catch (e) {
-    const detalle = e instanceof Error ? e.message : String(e);
-    await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: false, error: detalle });
-    console.error("[cierre-caja] envío fallido:", detalle);
-    return NextResponse.json({ ok: false, fecha: hoy, error: detalle }, { status: 500 });
+  // Enviar a cada destinatario de forma independiente: si uno falla,
+  // los demás igual reciben el informe.
+  const fallidos: string[] = [];
+  for (const numero of DESTINATARIOS) {
+    try {
+      await sendWhatsAppMessage(numero, mensaje);
+      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: numero, ok: true });
+    } catch (e) {
+      const detalle = e instanceof Error ? e.message : String(e);
+      fallidos.push(numero);
+      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: numero, ok: false, error: detalle });
+      console.error(`[cierre-caja] envío fallido a ${numero}:`, detalle);
+    }
   }
 
-  await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: true });
+  if (fallidos.length === DESTINATARIOS.length) {
+    return NextResponse.json({ ok: false, fecha: hoy, fallidos }, { status: 500 });
+  }
 
   return NextResponse.json({
     ok: true,
     fecha: hoy,
-    enviado_a: ANDRES_PHONE,
+    enviado_a: DESTINATARIOS.filter((n) => !fallidos.includes(n)),
+    fallidos,
     resumen,
   });
 }
