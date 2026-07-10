@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
     if (!message) return new NextResponse(null, { status: 200 });
 
     const from = message.from as string;
-    const body = (message.text?.body ?? "").trim();
+    // message.button = clic en un botón de respuesta rápida de una plantilla
+    const body = (message.text?.body ?? message.button?.text ?? "").trim();
 
     if (!from || !body) return new NextResponse(null, { status: 200 });
 
@@ -99,8 +100,9 @@ export async function POST(request: NextRequest) {
       return new NextResponse(null, { status: 200 });
     }
 
-    // Respuesta a la plantilla del cierre de caja: enviar el informe completo.
-    if (body.toUpperCase() === "VER") {
+    // Respuesta a la plantilla del informe diario (botón "Ver informe
+    // completo" o la palabra VER): enviar el detalle completo.
+    if (body.toUpperCase() === "VER" || body.toUpperCase() === "VER INFORME COMPLETO") {
       const { mensaje } = await construirCierreCaja(getSupabaseClient(), hoyBogota());
       await sendWhatsAppMessage(from, mensaje);
       return new NextResponse(null, { status: 200 });
