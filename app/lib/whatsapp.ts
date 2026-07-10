@@ -60,7 +60,9 @@ export async function sendWhatsAppTemplate(
     type: "template",
     template: {
       name: nombre,
-      language: { code: "es" },
+      // Debe coincidir con el idioma elegido al crear la plantilla en Meta:
+      // "Spanish (COL)" = es_CO
+      language: { code: "es_CO" },
       components: [
         {
           type: "body",
