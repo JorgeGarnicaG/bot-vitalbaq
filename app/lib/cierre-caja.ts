@@ -4,7 +4,7 @@ export function hoyBogota(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
 }
 
-function fechaLegible(fechaISO: string): string {
+export function fechaLegible(fechaISO: string): string {
   return new Date(`${fechaISO}T12:00:00Z`).toLocaleDateString("es-CO", {
     weekday: "long",
     day: "numeric",
@@ -14,7 +14,7 @@ function fechaLegible(fechaISO: string): string {
   });
 }
 
-function cop(valor: number): string {
+export function cop(valor: number): string {
   return `$${Math.round(valor).toLocaleString("es-CO")}`;
 }
 

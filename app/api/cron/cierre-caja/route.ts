@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/app/lib/supabase";
-import { sendWhatsAppMessage, notificarFalloAdmin, ADMIN_PHONE } from "@/app/lib/whatsapp";
-import { construirCierreCaja, hoyBogota } from "@/app/lib/cierre-caja";
+import {
+  sendWhatsAppMessage,
+  sendWhatsAppTemplate,
+  notificarFalloAdmin,
+  ADMIN_PHONE,
+} from "@/app/lib/whatsapp";
+import { construirCierreCaja, hoyBogota, fechaLegible, cop } from "@/app/lib/cierre-caja";
 import { registrarEnvio } from "@/app/lib/envios-log";
 
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
 
-const DESTINATARIOS = [
-  "573013379407", // Andrés (dueño VitalBAQ)
-  "573214650092", // Jorge (Zelia)
-];
+const ANDRES_PHONE = "573013379407";
+
+// Andrés casi nunca le escribe al bot, así que el texto libre se pierde por
+// la ventana de 24 h de WhatsApp (error 131047). A él se le envía una
+// plantilla aprobada por Meta — esas se entregan siempre — con las cifras
+// del día; si responde VER, el webhook le manda el informe completo.
+const PLANTILLA_CIERRE = "cierre_caja_diario";
 
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -22,34 +30,55 @@ export async function GET(request: NextRequest) {
   const hoy = hoyBogota();
 
   const { mensaje, resumen } = await construirCierreCaja(sb, hoy);
+  const resultados: Record<string, string> = {};
 
-  // Enviar a cada destinatario de forma independiente: si uno falla,
-  // los demás igual reciben el informe.
-  const fallidos: string[] = [];
-  for (const numero of DESTINATARIOS) {
+  // ── Andrés: plantilla (entrega garantizada sin ventana de 24 h) ────────────
+  try {
+    await sendWhatsAppTemplate(ANDRES_PHONE, PLANTILLA_CIERRE, [
+      fechaLegible(hoy),
+      cop(resumen.total_ingresos),
+      cop(resumen.total_compras),
+      cop(resumen.total_ingresos - resumen.total_compras),
+    ]);
+    await registrarEnvio(sb, { tipo: "cierre-caja-plantilla", destinatario: ANDRES_PHONE, ok: true });
+    resultados[ANDRES_PHONE] = "plantilla enviada";
+  } catch (e) {
+    const detalle = e instanceof Error ? e.message : String(e);
+    await registrarEnvio(sb, { tipo: "cierre-caja-plantilla", destinatario: ANDRES_PHONE, ok: false, error: detalle });
+    console.error("[cierre-caja] plantilla fallida:", detalle);
+
+    // Respaldo mientras la plantilla no exista o no esté aprobada: intentar
+    // texto libre (solo llega si la ventana de 24 h está abierta).
     try {
-      await sendWhatsAppMessage(numero, mensaje);
-      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: numero, ok: true });
-    } catch (e) {
-      const detalle = e instanceof Error ? e.message : String(e);
-      fallidos.push(numero);
-      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: numero, ok: false, error: detalle });
-      console.error(`[cierre-caja] envío fallido a ${numero}:`, detalle);
-      if (numero !== ADMIN_PHONE) {
-        await notificarFalloAdmin(`Cierre de caja: falló el envío a ${numero}`, detalle);
-      }
+      await sendWhatsAppMessage(ANDRES_PHONE, mensaje);
+      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: true });
+      resultados[ANDRES_PHONE] = "texto libre (plantilla falló)";
+    } catch (e2) {
+      const detalle2 = e2 instanceof Error ? e2.message : String(e2);
+      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: false, error: detalle2 });
+      resultados[ANDRES_PHONE] = "falló";
     }
+    await notificarFalloAdmin(
+      `Cierre de caja: la plantilla "${PLANTILLA_CIERRE}" falló para Andrés (¿ya está creada y aprobada en Meta?)`,
+      detalle
+    );
   }
 
-  if (fallidos.length === DESTINATARIOS.length) {
-    return NextResponse.json({ ok: false, fecha: hoy, fallidos }, { status: 500 });
+  // ── Jorge (admin): informe completo en texto libre ─────────────────────────
+  try {
+    await sendWhatsAppMessage(ADMIN_PHONE, mensaje);
+    await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ADMIN_PHONE, ok: true });
+    resultados[ADMIN_PHONE] = "informe completo enviado";
+  } catch (e) {
+    const detalle = e instanceof Error ? e.message : String(e);
+    await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ADMIN_PHONE, ok: false, error: detalle });
+    console.error(`[cierre-caja] envío fallido a ${ADMIN_PHONE}:`, detalle);
+    resultados[ADMIN_PHONE] = "falló";
   }
 
-  return NextResponse.json({
-    ok: true,
-    fecha: hoy,
-    enviado_a: DESTINATARIOS.filter((n) => !fallidos.includes(n)),
-    fallidos,
-    resumen,
-  });
+  const todoFallo = Object.values(resultados).every((r) => r === "falló");
+  return NextResponse.json(
+    { ok: !todoFallo, fecha: hoy, resultados, resumen },
+    { status: todoFallo ? 500 : 200 }
+  );
 }

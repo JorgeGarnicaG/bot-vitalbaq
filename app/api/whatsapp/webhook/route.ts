@@ -3,6 +3,7 @@ import { verifyMetaWebhook, sendWhatsAppMessage, notificarFalloAdmin, ADMIN_PHON
 import { getVitalbaqAnswer } from "@/app/lib/ai-vitalbaq";
 import { getSupabaseClient } from "@/app/lib/supabase";
 import { registrarEnvio } from "@/app/lib/envios-log";
+import { construirCierreCaja, hoyBogota } from "@/app/lib/cierre-caja";
 
 export const maxDuration = 60;
 
@@ -95,6 +96,13 @@ export async function POST(request: NextRequest) {
         "Puedes preguntarme sobre empleados, pedidos, inventario, proveedores, activos o sesiones nutricionales.\n\n" +
         "Escribe *AYUDA* para ver todo lo que puedo hacer."
       );
+      return new NextResponse(null, { status: 200 });
+    }
+
+    // Respuesta a la plantilla del cierre de caja: enviar el informe completo.
+    if (body.toUpperCase() === "VER") {
+      const { mensaje } = await construirCierreCaja(getSupabaseClient(), hoyBogota());
+      await sendWhatsAppMessage(from, mensaje);
       return new NextResponse(null, { status: 200 });
     }
 

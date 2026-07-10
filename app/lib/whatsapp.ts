@@ -18,7 +18,7 @@ export async function notificarFalloAdmin(contexto: string, detalle: string): Pr
   }
 }
 
-export async function sendWhatsAppMessage(to: string, body: string): Promise<void> {
+async function postMeta(to: string, payload: Record<string, unknown>): Promise<void> {
   // .trim() + limpieza de "\n" literal: el token pegado en Vercel puede traer
   // saltos de línea al final y Meta lo rechaza como "Malformed access token".
   const TOKEN    = process.env.WHATSAPP_TOKEN?.replace(/\\n/g, "").trim();
@@ -33,18 +33,42 @@ export async function sendWhatsAppMessage(to: string, body: string): Promise<voi
       Authorization: `Bearer ${TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to: number,
-      type: "text",
-      text: { body },
-    }),
+    body: JSON.stringify({ messaging_product: "whatsapp", to: number, ...payload }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(`Meta API error: ${JSON.stringify(err)}`);
   }
+}
+
+export async function sendWhatsAppMessage(to: string, body: string): Promise<void> {
+  await postMeta(to, { type: "text", text: { body } });
+}
+
+/**
+ * Envía una plantilla aprobada por Meta. A diferencia del texto libre,
+ * las plantillas se entregan SIN necesidad de que el destinatario haya
+ * escrito al bot en las últimas 24 h (evita el error 131047).
+ */
+export async function sendWhatsAppTemplate(
+  to: string,
+  nombre: string,
+  parametros: string[]
+): Promise<void> {
+  await postMeta(to, {
+    type: "template",
+    template: {
+      name: nombre,
+      language: { code: "es" },
+      components: [
+        {
+          type: "body",
+          parameters: parametros.map((text) => ({ type: "text", text })),
+        },
+      ],
+    },
+  });
 }
 
 export function verifyMetaWebhook(
