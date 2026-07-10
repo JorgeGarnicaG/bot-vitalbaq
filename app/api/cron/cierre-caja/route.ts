@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/app/lib/supabase";
 import { sendWhatsAppMessage } from "@/app/lib/whatsapp";
 import { construirCierreCaja, hoyBogota } from "@/app/lib/cierre-caja";
+import { registrarEnvio } from "@/app/lib/envios-log";
 
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
@@ -19,7 +20,16 @@ export async function GET(request: NextRequest) {
 
   const { mensaje, resumen } = await construirCierreCaja(sb, hoy);
 
-  await sendWhatsAppMessage(ANDRES_PHONE, mensaje);
+  try {
+    await sendWhatsAppMessage(ANDRES_PHONE, mensaje);
+  } catch (e) {
+    const detalle = e instanceof Error ? e.message : String(e);
+    await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: false, error: detalle });
+    console.error("[cierre-caja] envío fallido:", detalle);
+    return NextResponse.json({ ok: false, fecha: hoy, error: detalle }, { status: 500 });
+  }
+
+  await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: true });
 
   return NextResponse.json({
     ok: true,

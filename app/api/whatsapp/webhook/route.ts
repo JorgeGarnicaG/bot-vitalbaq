@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyMetaWebhook, sendWhatsAppMessage } from "@/app/lib/whatsapp";
 import { getVitalbaqAnswer } from "@/app/lib/ai-vitalbaq";
+import { getSupabaseClient } from "@/app/lib/supabase";
+import { registrarEnvio } from "@/app/lib/envios-log";
 
 export const maxDuration = 60;
 
@@ -41,7 +43,28 @@ export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
 
-    const message = payload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+    const value = payload?.entry?.[0]?.changes?.[0]?.value;
+
+    // Meta reporta aquí los mensajes que NO se pudieron entregar (p. ej.
+    // error 131047, fuera de la ventana de 24 h). Registrarlos para que los
+    // fallos de entrega no pasen en silencio.
+    const statusFallido = (value?.statuses ?? []).find(
+      (s: { status?: string }) => s.status === "failed"
+    );
+    if (statusFallido) {
+      const detalle = (statusFallido.errors ?? [])
+        .map((e: { code?: number; title?: string }) => `${e.code}: ${e.title}`)
+        .join(" | ");
+      console.error("[webhook status failed]", statusFallido.recipient_id, detalle);
+      await registrarEnvio(getSupabaseClient(), {
+        tipo: "webhook-status",
+        destinatario: statusFallido.recipient_id,
+        ok: false,
+        error: detalle || "failed sin detalle",
+      });
+    }
+
+    const message = value?.messages?.[0];
     if (!message) return new NextResponse(null, { status: 200 });
 
     const from = message.from as string;

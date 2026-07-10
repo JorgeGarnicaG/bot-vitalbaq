@@ -23,6 +23,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ fecha, mensaje, resumen });
   }
 
+  // Historial de envíos de WhatsApp (exitosos y fallidos) — ?envios=1
+  if (request.nextUrl.searchParams.get("envios")) {
+    const sb = getSupabaseClient();
+    const { data, error } = await sb
+      .from("envios_log")
+      .select("creado_en,tipo,destinatario,ok,error")
+      .order("creado_en", { ascending: false })
+      .limit(30);
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, envios: data });
+  }
+
   const envCheck = {
     WHATSAPP_TOKEN: !!process.env.WHATSAPP_TOKEN,
     WHATSAPP_PHONE_ID: !!process.env.WHATSAPP_PHONE_ID,
