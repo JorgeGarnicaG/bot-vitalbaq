@@ -1,5 +1,23 @@
 const VERIFY = process.env.WHATSAPP_VERIFY_TOKEN;
 
+/** Jorge (Zelia) — recibe las alertas cuando algo falla en el bot. */
+export const ADMIN_PHONE = "573214650092";
+
+/**
+ * Avisa al admin por WhatsApp que algo falló. Nunca lanza: si la alerta
+ * misma no se puede enviar, solo queda en console.error.
+ */
+export async function notificarFalloAdmin(contexto: string, detalle: string): Promise<void> {
+  try {
+    await sendWhatsAppMessage(
+      ADMIN_PHONE,
+      `⚠️ *VitalBAQ Bot — Fallo detectado*\n\n📍 ${contexto}\n\n\`\`\`${detalle.slice(0, 500)}\`\`\``
+    );
+  } catch (e) {
+    console.error("[alerta admin] no se pudo notificar el fallo:", e);
+  }
+}
+
 export async function sendWhatsAppMessage(to: string, body: string): Promise<void> {
   // .trim() + limpieza de "\n" literal: el token pegado en Vercel puede traer
   // saltos de línea al final y Meta lo rechaza como "Malformed access token".

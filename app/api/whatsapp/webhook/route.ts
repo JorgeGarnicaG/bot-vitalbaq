@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyMetaWebhook, sendWhatsAppMessage } from "@/app/lib/whatsapp";
+import { verifyMetaWebhook, sendWhatsAppMessage, notificarFalloAdmin, ADMIN_PHONE } from "@/app/lib/whatsapp";
 import { getVitalbaqAnswer } from "@/app/lib/ai-vitalbaq";
 import { getSupabaseClient } from "@/app/lib/supabase";
 import { registrarEnvio } from "@/app/lib/envios-log";
@@ -62,6 +62,14 @@ export async function POST(request: NextRequest) {
         ok: false,
         error: detalle || "failed sin detalle",
       });
+      // Anti-bucle: si lo que no se entregó fue un mensaje al propio admin,
+      // no intentar alertarlo por el mismo canal que acaba de fallar.
+      if (statusFallido.recipient_id !== ADMIN_PHONE) {
+        await notificarFalloAdmin(
+          `WhatsApp no entregó un mensaje a ${statusFallido.recipient_id}`,
+          detalle || "failed sin detalle"
+        );
+      }
     }
 
     const message = value?.messages?.[0];

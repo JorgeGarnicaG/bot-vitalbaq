@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/app/lib/supabase";
-import { sendWhatsAppMessage } from "@/app/lib/whatsapp";
+import { sendWhatsAppMessage, notificarFalloAdmin, ADMIN_PHONE } from "@/app/lib/whatsapp";
 import { construirCierreCaja, hoyBogota } from "@/app/lib/cierre-caja";
 import { registrarEnvio } from "@/app/lib/envios-log";
 
@@ -35,6 +35,9 @@ export async function GET(request: NextRequest) {
       fallidos.push(numero);
       await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: numero, ok: false, error: detalle });
       console.error(`[cierre-caja] envío fallido a ${numero}:`, detalle);
+      if (numero !== ADMIN_PHONE) {
+        await notificarFalloAdmin(`Cierre de caja: falló el envío a ${numero}`, detalle);
+      }
     }
   }
 

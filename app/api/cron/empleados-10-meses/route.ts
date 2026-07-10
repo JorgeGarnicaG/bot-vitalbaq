@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/app/lib/supabase";
-import { sendWhatsAppMessage } from "@/app/lib/whatsapp";
+import { sendWhatsAppMessage, notificarFalloAdmin } from "@/app/lib/whatsapp";
+import { registrarEnvio } from "@/app/lib/envios-log";
 
 export const maxDuration = 30;
 export const dynamic = "force-dynamic";
@@ -55,7 +56,19 @@ export async function GET(request: NextRequest) {
     .map((p) => p.trim())
     .filter(Boolean);
 
-  await Promise.all(phones.map((phone) => sendWhatsAppMessage(phone, mensaje)));
+  await Promise.all(
+    phones.map(async (phone) => {
+      try {
+        await sendWhatsAppMessage(phone, mensaje);
+        await registrarEnvio(sb, { tipo: "empleados-10-meses", destinatario: phone, ok: true });
+      } catch (e) {
+        const detalle = e instanceof Error ? e.message : String(e);
+        await registrarEnvio(sb, { tipo: "empleados-10-meses", destinatario: phone, ok: false, error: detalle });
+        console.error(`[empleados-10-meses] envío fallido a ${phone}:`, detalle);
+        await notificarFalloAdmin(`Alerta 10 meses: falló el envío a ${phone}`, detalle);
+      }
+    })
+  );
 
   return NextResponse.json({
     ok: true,
