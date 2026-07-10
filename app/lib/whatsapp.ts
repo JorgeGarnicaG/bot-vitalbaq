@@ -1,8 +1,10 @@
 const VERIFY = process.env.WHATSAPP_VERIFY_TOKEN;
 
 export async function sendWhatsAppMessage(to: string, body: string): Promise<void> {
-  const TOKEN    = process.env.WHATSAPP_TOKEN;
-  const PHONE_ID = process.env.WHATSAPP_PHONE_ID;
+  // .trim() + limpieza de "\n" literal: el token pegado en Vercel puede traer
+  // saltos de línea al final y Meta lo rechaza como "Malformed access token".
+  const TOKEN    = process.env.WHATSAPP_TOKEN?.replace(/\\n/g, "").trim();
+  const PHONE_ID = process.env.WHATSAPP_PHONE_ID?.replace(/\\n/g, "").trim();
   if (!TOKEN || !PHONE_ID) throw new Error("Meta WhatsApp no configurado");
 
   const number = to.replace(/^whatsapp:/, "").replace(/^\+/, "").replace(/\s/g, "");
