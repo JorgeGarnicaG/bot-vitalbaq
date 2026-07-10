@@ -1,0 +1,73 @@
+<svg width="640" height="640" viewBox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#0FA855"/>
+      <stop offset="100%" stop-color="#07773A"/>
+    </radialGradient>
+    <clipPath id="heartClip">
+      <path d="M320,457 C306,439 274,447 274,473 C274,495 300,511 320,529 C340,511 366,495 366,473 C366,447 334,439 320,457 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="640" height="640" fill="url(#bg)"/>
+
+  <!-- Trazas de circuito (alusión IA) -->
+  <g stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="4" fill="none" stroke-linecap="round">
+    <path d="M60,140 H150 V220"/>
+    <path d="M580,170 H500 V250"/>
+    <path d="M80,500 H160 V430"/>
+    <path d="M560,480 H480 V545"/>
+  </g>
+  <g fill="#FFFFFF" fill-opacity="0.25">
+    <circle cx="60" cy="140" r="7"/>
+    <circle cx="150" cy="220" r="7"/>
+    <circle cx="580" cy="170" r="7"/>
+    <circle cx="500" cy="250" r="7"/>
+    <circle cx="80" cy="500" r="7"/>
+    <circle cx="560" cy="480" r="7"/>
+  </g>
+
+  <!-- Destellos -->
+  <g fill="#FFFFFF" fill-opacity="0.9">
+    <path d="M132,96 l6,16 16,6 -16,6 -6,16 -6,-16 -16,-6 16,-6 Z"/>
+    <path d="M520,92 l5,13 13,5 -13,5 -5,13 -5,-13 -13,-5 13,-5 Z" fill-opacity="0.7"/>
+    <path d="M566,340 l4,11 11,4 -11,4 -4,11 -4,-11 -11,-4 11,-4 Z" fill-opacity="0.6"/>
+  </g>
+
+  <!-- Antena -->
+  <rect x="313" y="118" width="14" height="58" rx="7" fill="#FFFFFF"/>
+  <path d="M320,86 C314,78 300,82 300,93 C300,102 311,109 320,117 C329,109 340,102 340,93 C340,82 326,78 320,86 Z" fill="#F2707E"/>
+
+  <!-- Orejas -->
+  <rect x="146" y="248" width="30" height="84" rx="15" fill="#8DC63F"/>
+  <rect x="464" y="248" width="30" height="84" rx="15" fill="#8DC63F"/>
+
+  <!-- Cabeza -->
+  <rect x="176" y="170" width="288" height="226" rx="58" fill="#FFFFFF"/>
+
+  <!-- Visor -->
+  <rect x="212" y="212" width="216" height="142" rx="40" fill="#0A5C30"/>
+
+  <!-- Ojos -->
+  <circle cx="272" cy="272" r="23" fill="#FFFFFF"/>
+  <circle cx="368" cy="272" r="23" fill="#FFFFFF"/>
+  <circle cx="279" cy="265" r="8" fill="#0A5C30"/>
+  <circle cx="375" cy="265" r="8" fill="#0A5C30"/>
+
+  <!-- Sonrisa -->
+  <path d="M285,316 Q320,342 355,316" stroke="#FFFFFF" stroke-width="10" fill="none" stroke-linecap="round"/>
+
+  <!-- Cuello -->
+  <rect x="296" y="396" width="48" height="22" fill="#FFFFFF" fill-opacity="0.85"/>
+
+  <!-- Pecho con corazón de la marca -->
+  <rect x="230" y="418" width="180" height="132" rx="30" fill="#FFFFFF"/>
+  <g clip-path="url(#heartClip)">
+    <rect x="274" y="439" width="46" height="32" fill="#F2DFB6"/>
+    <rect x="320" y="439" width="46" height="32" fill="#0B9444"/>
+    <rect x="274" y="471" width="46" height="28" fill="#8DC63F"/>
+    <rect x="320" y="471" width="46" height="28" fill="#F7A823"/>
+    <rect x="274" y="499" width="92" height="32" fill="#B33A2B"/>
+  </g>
+</svg>
