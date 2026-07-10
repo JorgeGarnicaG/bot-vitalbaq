@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Informe Técnico — Entrega del Informe Diario por WhatsApp — VitalBAQ S.A.S. — Zelia</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 11.5pt;
+      color: #111;
+      background: #fff;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 4px solid #006837;
+      border-bottom: 2px solid #C8102E;
+      padding: 14px 0;
+      margin-bottom: 28px;
+      gap: 20px;
+    }
+    .header-logo { font-size: 26pt; font-weight: 900; letter-spacing: 4px; color: #607B74; font-family: 'Georgia', serif; text-transform: uppercase; }
+    .header-center { flex: 1; text-align: center; }
+    .header-center h1 { font-size: 13pt; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #111; }
+    .header-center p { font-size: 9.5pt; color: #555; margin-top: 2px; }
+    .header-code { text-align: right; font-size: 9pt; color: #555; line-height: 1.7; }
+
+    .section { margin-bottom: 24px; }
+    .section-title {
+      background: #006837; color: #fff;
+      font-size: 10.5pt; font-weight: bold;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      padding: 5px 12px; margin-bottom: 10px;
+    }
+    .section-title.amber { background: #c9a84c; color: #1a1a2e; }
+    .section-title.navy  { background: #1a1a2e; }
+    .section-title.teal  { background: #607B74; }
+    .section-title.red   { background: #C8102E; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
+    th, td { border: 1px solid #bbb; padding: 7px 10px; vertical-align: top; }
+    th { background: #f2f2f2; font-weight: bold; text-align: left; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    p { margin-bottom: 10px; }
+    ul, ol { margin: 0 0 10px 24px; }
+    li { margin-bottom: 5px; }
+
+    .callout {
+      border: 1px solid #006837;
+      border-left: 6px solid #006837;
+      background: #f2f8f4;
+      padding: 12px 16px;
+      margin: 14px 0;
+      font-size: 11pt;
+    }
+    .callout strong { color: #006837; }
+
+    .status-pill {
+      display: inline-block;
+      background: #c9a84c; color: #1a1a2e;
+      font-weight: bold; font-size: 9.5pt;
+      padding: 2px 12px; border-radius: 12px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .status-pill.ok { background: #006837; color: #fff; }
+
+    .firma { margin-top: 40px; display: flex; justify-content: space-between; gap: 40px; }
+    .firma-bloque { flex: 1; text-align: center; font-size: 10pt; }
+    .firma-linea { border-top: 1px solid #111; margin-top: 46px; padding-top: 6px; }
+
+    .footer { margin-top: 36px; border-top: 2px solid #006837; padding-top: 10px; font-size: 9pt; color: #555; text-align: center; }
+
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-logo">Zelia</div>
+    <div class="header-center">
+      <h1>Informe Técnico — Entrega del Informe Diario por WhatsApp</h1>
+      <p>Cliente: VitalBAQ S.A.S. · Sistema: Bot de WhatsApp VitalBAQ</p>
+    </div>
+    <div class="header-code">
+      Código: ZEL-VB-2026-002<br />
+      Fecha: 10 de julio de 2026<br />
+      Estado: <span class="status-pill">En espera de Meta</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">1. Resumen ejecutivo</div>
+    <p>
+      Se reportó que el informe diario de operación no estaba llegando por WhatsApp al señor Andrés.
+      Tras el diagnóstico técnico realizado el 10 de julio de 2026, se estableció que
+      <strong>la causa no es una falla del sistema desarrollado por Zelia</strong>, sino una
+      <strong>política de la plataforma WhatsApp, propiedad de Facebook (Meta)</strong>, que restringe
+      la entrega de mensajes iniciados por empresas.
+    </p>
+    <p>
+      Zelia ya diseñó e implementó la solución definitiva el mismo día. Su activación
+      <strong>depende únicamente de la aprobación de Facebook (Meta)</strong>, que se encuentra en curso.
+    </p>
+  </div>
+
+  <div class="section">
+    <div class="section-title red">2. Causa del problema — política de Facebook (Meta)</div>
+    <p>
+      WhatsApp aplica a todos los bots empresariales del mundo la llamada
+      <strong>"ventana de 24 horas"</strong>: una empresa solo puede enviar mensajes de texto libre a
+      una persona si esa persona le escribió al bot en las últimas 24 horas. Si la ventana está
+      cerrada, WhatsApp <em>acepta</em> el mensaje pero <strong>lo descarta sin entregarlo</strong>.
+    </p>
+    <p>
+      Esto quedó comprobado con evidencia técnica capturada en los registros del sistema: al enviar
+      el informe al número del señor Andrés, la plataforma respondió con el código de error
+      <strong>131047 — "Re-engagement message"</strong>, que significa precisamente "destinatario fuera
+      de la ventana de 24 horas".
+    </p>
+    <div class="callout">
+      <strong>Importante:</strong> el sistema del bot genera el informe correctamente todas las noches
+      y lo envía a la plataforma sin errores. La restricción de entrega es una regla comercial de
+      Facebook (Meta), ajena al desarrollo realizado por Zelia. La prueba: el mismo informe sí es
+      entregado a los usuarios que mantienen conversación activa con el bot.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. Solución implementada por Zelia</div>
+    <p>
+      El mecanismo oficial de Facebook (Meta) para notificaciones garantizadas —el mismo que usan
+      bancos y aerolíneas— son las <strong>plantillas de mensaje verificadas</strong>, que se entregan
+      siempre, sin depender de la ventana de 24 horas. Zelia ya dejó todo implementado:
+    </p>
+    <table>
+      <tr><th style="width:34%">Componente</th><th>Descripción</th><th style="width:16%">Estado</th></tr>
+      <tr>
+        <td>Plantilla oficial <em>informe_diario_vitalbaq</em></td>
+        <td>Informe diario con las cifras reales de toda la operación: cafetería, remisiones nutricionales, ventas BAQ/Adelita, pedidos, compras y balance.</td>
+        <td><span class="status-pill">En revisión de Meta</span></td>
+      </tr>
+      <tr>
+        <td>Botón "Ver informe completo"</td>
+        <td>Con un solo toque, el destinatario recibe el desglose detallado ítem por ítem, sin escribir nada.</td>
+        <td><span class="status-pill">En revisión de Meta</span></td>
+      </tr>
+      <tr>
+        <td>Envío automático diario (7:00 p.&nbsp;m.)</td>
+        <td>Programado y en funcionamiento; usará la plantilla en cuanto Meta la apruebe.</td>
+        <td><span class="status-pill ok">Operativo</span></td>
+      </tr>
+      <tr>
+        <td>Sistema de monitoreo y alertas</td>
+        <td>Cada envío queda registrado (exitoso o fallido) y cualquier fallo genera alerta inmediata al administrador. Un caso como este ya no puede pasar inadvertido.</td>
+        <td><span class="status-pill ok">Operativo</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title amber">4. Estado actual y tiempos</div>
+    <ul>
+      <li>La plantilla fue enviada a revisión de Facebook (Meta) el <strong>10 de julio de 2026</strong> y su estado actual es <strong>"En revisión"</strong>.</li>
+      <li>Meta usualmente aprueba este tipo de plantillas en <strong>minutos u horas</strong>; su plazo máximo oficial es de 24 a 48 horas.</li>
+      <li><strong>La activación no requiere ninguna acción adicional de VitalBAQ ni de Zelia:</strong> en cuanto Meta apruebe, el informe comenzará a llegar automáticamente cada noche.</li>
+      <li>Mientras tanto, el informe puede consultarse en cualquier momento escribiéndole al bot (<strong>+57 300 3415701</strong>) la palabra <strong>VER</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title teal">5. Próximos pasos</div>
+    <ol>
+      <li>Confirmación de la aprobación de la plantilla por parte de Facebook (Meta) — en espera.</li>
+      <li>Prueba de entrega real al número del señor Andrés y verificación en los registros del sistema.</li>
+      <li>Seguimiento durante la primera semana para confirmar la entrega diaria sin novedades.</li>
+    </ol>
+  </div>
+
+  <div class="firma">
+    <div class="firma-bloque">
+      <div class="firma-linea"><strong>Jorge Garnica</strong><br />CEO &amp; Founder — Zelia</div>
+    </div>
+    <div class="firma-bloque">
+      <div class="firma-linea"><strong>Recibido — VitalBAQ S.A.S.</strong><br />Nombre y firma</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Zelia · gerencia@zelia-online.com · WhatsApp +57 324 5996497 · Barranquilla, Colombia
+  </div>
+
+</body>
+</html>
