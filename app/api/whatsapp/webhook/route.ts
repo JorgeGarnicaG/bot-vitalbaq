@@ -44,6 +44,10 @@ export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
 
+    // entry[0].id = ID de la cuenta de WhatsApp Business (WABA) dueña del
+    // número — útil para diagnósticos de plantillas/cuenta.
+    console.log("[webhook] WABA:", payload?.entry?.[0]?.id);
+
     const value = payload?.entry?.[0]?.changes?.[0]?.value;
 
     // Meta reporta aquí los mensajes que NO se pudieron entregar (p. ej.
