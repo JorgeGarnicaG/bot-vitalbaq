@@ -53,6 +53,10 @@ export async function POST(request: NextRequest) {
     // Meta reporta aquí los mensajes que NO se pudieron entregar (p. ej.
     // error 131047, fuera de la ventana de 24 h). Registrarlos para que los
     // fallos de entrega no pasen en silencio.
+    for (const s of value?.statuses ?? []) {
+      console.log(`[webhook status] ${s.status} → ${s.recipient_id} (${s.id?.slice(-12)})`);
+    }
+
     const statusFallido = (value?.statuses ?? []).find(
       (s: { status?: string }) => s.status === "failed"
     );
