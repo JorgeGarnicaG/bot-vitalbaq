@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { buildResumenContexto, consultarTabla, guardarPreguntaSinRespuesta } from "./supabase";
+import { catalogoEstatico, consultarTabla, guardarPreguntaSinRespuesta } from "./supabase";
 
 const SIN_DATOS = "[SIN_DATOS]";
 
@@ -77,19 +77,23 @@ export async function getVitalbaqAnswer(userMessage: string, nombre?: string, te
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return "Error: ANTHROPIC_API_KEY no configurada.";
 
-  const catalogo = await buildResumenContexto();
+  // Catálogo estático (sin conteos): 0 consultas a Supabase y 100% cacheable.
+  const catalogo = catalogoEstatico();
   const client = new Anthropic({ apiKey });
 
   const userContext = nombre
     ? `El usuario que pregunta se llama ${nombre}. Dirígete a él por su nombre cuando sea natural.\n\n`
     : "";
 
-  // Bloque fijo (cacheable) separado del catálogo dinámico (cambia con los datos).
-  // Así las instrucciones base no se refacturan completas en cada iteración del loop
-  // de herramientas ni en cada conversación nueva.
+  // Todo el system (instrucciones + catálogo estático) es fijo entre preguntas:
+  // un solo breakpoint de caché al final lo cubre completo, junto con las tools.
   const systemPrompt: Anthropic.TextBlockParam[] = [
-    { type: "text", text: systemPromptBase, cache_control: { type: "ephemeral" } },
-    { type: "text", text: `=== TABLAS DISPONIBLES (filas actuales y columnas conocidas) ===\n${catalogo}` },
+    { type: "text", text: systemPromptBase },
+    {
+      type: "text",
+      text: `=== TABLAS DISPONIBLES (columnas conocidas) ===\n${catalogo}`,
+      cache_control: { type: "ephemeral" },
+    },
   ];
 
   const messages: Anthropic.MessageParam[] = [
@@ -97,6 +101,7 @@ export async function getVitalbaqAnswer(userMessage: string, nombre?: string, te
   ];
 
   let respuestaFinal = "No pude generar una respuesta.";
+  let ultimoConCache: Anthropic.ToolResultBlockParam | null = null;
 
   for (let i = 0; i < MAX_ITERACIONES; i++) {
     const response = await client.messages.create({
@@ -107,6 +112,11 @@ export async function getVitalbaqAnswer(userMessage: string, nombre?: string, te
       tools: [tool],
       messages,
     });
+
+    const u = response.usage;
+    console.log(
+      `[ai usage] iter=${i} in=${u.input_tokens} out=${u.output_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0}`
+    );
 
     messages.push({ role: "assistant", content: response.content });
 
@@ -127,6 +137,14 @@ export async function getVitalbaqAnswer(userMessage: string, nombre?: string, te
           content: JSON.stringify(resultado).slice(0, 12000),
         });
       }
+
+      // Caché incremental: marcar el último tool_result hace que las
+      // iteraciones siguientes del loop lean todo el historial desde caché
+      // (90% de descuento) en vez de refacturarlo completo cada vez.
+      // Solo debe vivir la marca más reciente.
+      if (ultimoConCache) delete ultimoConCache.cache_control;
+      ultimoConCache = toolResults[toolResults.length - 1];
+      ultimoConCache.cache_control = { type: "ephemeral" };
 
       messages.push({ role: "user", content: toolResults });
       continue;

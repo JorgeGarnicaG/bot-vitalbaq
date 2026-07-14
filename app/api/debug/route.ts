@@ -9,6 +9,12 @@ export const maxDuration = 60;
 export async function GET(request: NextRequest) {
   const pregunta = request.nextUrl.searchParams.get("pregunta");
   if (pregunta) {
+    // La ruta de IA consume saldo de Anthropic: exigir clave (?key=CRON_SECRET)
+    // para que un desconocido que encuentre la URL no pueda quemar saldo.
+    const key = request.nextUrl.searchParams.get("key");
+    if (!process.env.CRON_SECRET || key !== process.env.CRON_SECRET) {
+      return new NextResponse("Unauthorized: agrega ?key=<CRON_SECRET>", { status: 401 });
+    }
     const respuesta = await getVitalbaqAnswer(pregunta);
     return NextResponse.json({ pregunta, respuesta });
   }

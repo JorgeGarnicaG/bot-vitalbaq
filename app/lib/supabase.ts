@@ -8,6 +8,18 @@ export function getSupabaseClient() {
   return createClient(SUPABASE_URL, key);
 }
 
+/**
+ * Catálogo estático: tabla y columnas conocidas, sin conteos. Al no variar
+ * entre preguntas, es cacheable por Anthropic (prompt caching) y evita las
+ * ~25 consultas COUNT a Supabase que hacía buildResumenContexto en cada
+ * pregunta del bot.
+ */
+export function catalogoEstatico(): string {
+  return Object.keys(TABLAS)
+    .map((tabla) => `- ${tabla} → columnas: ${TABLAS[tabla]}`)
+    .join("\n");
+}
+
 /** Catálogo liviano: nombre de tabla, cantidad de filas y columnas conocidas. */
 export async function buildResumenContexto(): Promise<string> {
   const sb = getSupabaseClient();
