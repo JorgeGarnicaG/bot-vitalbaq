@@ -20,6 +20,22 @@ const ANDRES_PHONE = "573013379407";
 // de toda la operación; si responde VER, el webhook le manda el detalle.
 const PLANTILLA_CIERRE = "informe_diario_vitalbaq";
 
+/**
+ * Quién recibe la plantilla oficial (no el texto libre). Además de Andrés
+ * (cliente, destinatario original), Jorge (admin) la recibe también como
+ * sonda de monitoreo: si a Jorge le llega, el cron sí disparó y el envío
+ * de plantilla en sí funciona — permite comparar en vivo contra lo que le
+ * llega a Andrés sin depender de logs. WHATSAPP_TEMPLATE_RECIPIENTS permite
+ * sumar más números sin tocar código (opcional).
+ */
+function destinatariosPlantilla(): string[] {
+  const extra = (process.env.WHATSAPP_TEMPLATE_RECIPIENTS ?? "")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return Array.from(new Set([ANDRES_PHONE, ADMIN_PHONE, ...extra]));
+}
+
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -32,63 +48,76 @@ export async function GET(request: NextRequest) {
   const { mensaje, resumen } = await construirCierreCaja(sb, hoy);
   const resultados: Record<string, string> = {};
 
-  // ── Andrés: plantilla (entrega garantizada sin ventana de 24 h) ────────────
-  try {
-    // Los 12 parámetros deben coincidir 1 a 1 con las variables {{1}}..{{12}}
-    // de la plantilla aprobada en Meta.
-    await sendWhatsAppTemplate(ANDRES_PHONE, PLANTILLA_CIERRE, [
-      fechaLegible(hoy),
-      String(resumen.sesiones),
-      String(resumen.pacientes),
-      cop(resumen.ventas_internas),
-      cop(resumen.ventas_externas),
-      String(resumen.ventas_cafeteria_num),
-      cop(resumen.ventas_cafeteria),
-      String(resumen.pedidos),
-      cop(resumen.pedidos_valor),
-      cop(resumen.total_compras),
-      cop(resumen.total_ingresos),
-      cop(resumen.total_ingresos - resumen.total_compras),
-    ]);
-    await registrarEnvio(sb, { tipo: "cierre-caja-plantilla", destinatario: ANDRES_PHONE, ok: true });
-    resultados[ANDRES_PHONE] = "plantilla enviada";
-  } catch (e) {
-    const detalle = e instanceof Error ? e.message : String(e);
-    await registrarEnvio(sb, { tipo: "cierre-caja-plantilla", destinatario: ANDRES_PHONE, ok: false, error: detalle });
-    console.error("[cierre-caja] plantilla fallida:", detalle);
+  // Los 12 parámetros deben coincidir 1 a 1 con las variables {{1}}..{{12}}
+  // de la plantilla aprobada en Meta.
+  const parametrosPlantilla = [
+    fechaLegible(hoy),
+    String(resumen.sesiones),
+    String(resumen.pacientes),
+    cop(resumen.ventas_internas),
+    cop(resumen.ventas_externas),
+    String(resumen.ventas_cafeteria_num),
+    cop(resumen.ventas_cafeteria),
+    String(resumen.pedidos),
+    cop(resumen.pedidos_valor),
+    cop(resumen.total_compras),
+    cop(resumen.total_ingresos),
+    cop(resumen.total_ingresos - resumen.total_compras),
+  ];
 
-    // Respaldo mientras la plantilla no exista o no esté aprobada: intentar
-    // texto libre (solo llega si la ventana de 24 h está abierta).
+  // ── Plantilla oficial: entrega garantizada sin ventana de 24 h ─────────────
+  for (const phone of destinatariosPlantilla()) {
     try {
-      await sendWhatsAppMessage(ANDRES_PHONE, mensaje);
-      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: true });
-      resultados[ANDRES_PHONE] = "texto libre (plantilla falló)";
-    } catch (e2) {
-      const detalle2 = e2 instanceof Error ? e2.message : String(e2);
-      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: false, error: detalle2 });
-      resultados[ANDRES_PHONE] = "falló";
+      await sendWhatsAppTemplate(phone, PLANTILLA_CIERRE, parametrosPlantilla);
+      await registrarEnvio(sb, { tipo: "cierre-caja-plantilla", destinatario: phone, ok: true });
+      resultados[phone] = "plantilla enviada";
+    } catch (e) {
+      const detalle = e instanceof Error ? e.message : String(e);
+      await registrarEnvio(sb, { tipo: "cierre-caja-plantilla", destinatario: phone, ok: false, error: detalle });
+      console.error(`[cierre-caja] plantilla fallida para ${phone}:`, detalle);
+      resultados[phone] = "plantilla falló";
+
+      if (phone === ANDRES_PHONE) {
+        // Respaldo mientras la plantilla no exista o no esté aprobada: intentar
+        // texto libre (solo llega si la ventana de 24 h está abierta).
+        try {
+          await sendWhatsAppMessage(ANDRES_PHONE, mensaje);
+          await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: true });
+          resultados[ANDRES_PHONE] = "plantilla falló; texto libre enviado";
+        } catch (e2) {
+          const detalle2 = e2 instanceof Error ? e2.message : String(e2);
+          await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ANDRES_PHONE, ok: false, error: detalle2 });
+          resultados[ANDRES_PHONE] = "falló";
+        }
+      }
+
+      // Anti-ruido: si a quien le falló la plantilla fue al propio admin, no
+      // tiene sentido alertarlo por WhatsApp de que su propio WhatsApp falló.
+      if (phone !== ADMIN_PHONE) {
+        await notificarFalloAdmin(
+          `Cierre de caja: la plantilla "${PLANTILLA_CIERRE}" falló para ${phone}` +
+            (phone === ANDRES_PHONE ? " (Andrés) — ¿ya está creada y aprobada en Meta?" : ""),
+          detalle
+        );
+      }
     }
-    await notificarFalloAdmin(
-      `Cierre de caja: la plantilla "${PLANTILLA_CIERRE}" falló para Andrés (¿ya está creada y aprobada en Meta?)`,
-      detalle
-    );
   }
 
-  // ── Jorge (admin): informe completo en texto libre ─────────────────────────
+  // ── Jorge (admin): informe completo en texto libre, además de la plantilla ─
   try {
     await sendWhatsAppMessage(ADMIN_PHONE, mensaje);
     await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ADMIN_PHONE, ok: true });
-    resultados[ADMIN_PHONE] = "informe completo enviado";
+    resultados[ADMIN_PHONE] = `${resultados[ADMIN_PHONE]}; informe completo enviado`;
   } catch (e) {
     const detalle = e instanceof Error ? e.message : String(e);
     await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ADMIN_PHONE, ok: false, error: detalle });
     console.error(`[cierre-caja] envío fallido a ${ADMIN_PHONE}:`, detalle);
-    resultados[ADMIN_PHONE] = "falló";
+    resultados[ADMIN_PHONE] = `${resultados[ADMIN_PHONE]}; informe completo falló`;
   }
 
-  const todoFallo = Object.values(resultados).every((r) => r === "falló");
+  const huboExito = Object.values(resultados).some((r) => r.includes("enviad"));
   return NextResponse.json(
-    { ok: !todoFallo, fecha: hoy, resultados, resumen },
-    { status: todoFallo ? 500 : 200 }
+    { ok: huboExito, fecha: hoy, resultados, resumen },
+    { status: huboExito ? 200 : 500 }
   );
 }

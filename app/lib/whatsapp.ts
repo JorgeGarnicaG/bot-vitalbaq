@@ -40,10 +40,44 @@ async function postMeta(to: string, payload: Record<string, unknown>): Promise<v
     const err = await res.json().catch(() => ({}));
     throw new Error(`Meta API error: ${JSON.stringify(err)}`);
   }
+  // OJO: res.ok=200 aquí solo significa que Meta ACEPTÓ el mensaje para
+  // procesarlo (te da un wamid). NO significa que ya le llegó al destinatario.
+  // La entrega real (sent/delivered/read/failed) llega después, async, por
+  // el webhook de status — incl. el caso típico de "failed 131047" cuando la
+  // ventana de 24 h se cerró después de que este POST ya había devuelto 200.
+  // Cualquier "enviado" en resultados/logs de los crons refleja este punto,
+  // no la entrega final.
+}
+
+// Meta rechaza cualquier texto libre de más de 4096 caracteres con
+// "Param text.body must be at most 4096 characters long." (code 100). El
+// informe de cierre de caja completo (o el comando VER) puede superar ese
+// límite en días con mucha actividad, así que se parte en varios mensajes
+// en vez de fallar en silencio.
+const WHATSAPP_MAX_BODY = 4096;
+
+function splitForWhatsApp(text: string, maxLen: number): string[] {
+  if (text.length <= maxLen) return [text];
+
+  const partes: string[] = [];
+  let restante = text;
+  while (restante.length > maxLen) {
+    let corte = restante.lastIndexOf("\n", maxLen);
+    if (corte <= 0) corte = maxLen; // sin salto de línea cerca: corte duro
+    partes.push(restante.slice(0, corte));
+    restante = restante.slice(corte).replace(/^\n+/, "");
+  }
+  if (restante) partes.push(restante);
+  return partes;
 }
 
 export async function sendWhatsAppMessage(to: string, body: string): Promise<void> {
-  await postMeta(to, { type: "text", text: { body } });
+  // Reservar espacio para el prefijo "Parte X/Y" cuando haga falta partir.
+  const partes = splitForWhatsApp(body, WHATSAPP_MAX_BODY - 20);
+  for (let i = 0; i < partes.length; i++) {
+    const texto = partes.length > 1 ? `_(Parte ${i + 1}/${partes.length})_\n\n${partes[i]}` : partes[i];
+    await postMeta(to, { type: "text", text: { body: texto } });
+  }
 }
 
 /**
