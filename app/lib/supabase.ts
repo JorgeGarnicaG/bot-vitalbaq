@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { TABLAS } from "./db-schema";
 
-const SUPABASE_URL = "https://ukbejxfvhhftpwugoxqb.supabase.co";
+const SUPABASE_URL = "https://daxtqwhujxnexilrfzaa.supabase.co"; // vitalbaq-bot (Supabase Free, cuenta jorgeluispinzong@gmail.com)
 
 export function getSupabaseClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
