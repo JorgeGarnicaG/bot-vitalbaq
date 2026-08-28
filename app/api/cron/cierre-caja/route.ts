@@ -103,16 +103,24 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // ── Jorge (admin): informe completo en texto libre, además de la plantilla ─
-  try {
-    await sendWhatsAppMessage(ADMIN_PHONE, mensaje);
-    await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ADMIN_PHONE, ok: true });
-    resultados[ADMIN_PHONE] = `${resultados[ADMIN_PHONE]}; informe completo enviado`;
-  } catch (e) {
-    const detalle = e instanceof Error ? e.message : String(e);
-    await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: ADMIN_PHONE, ok: false, error: detalle });
-    console.error(`[cierre-caja] envío fallido a ${ADMIN_PHONE}:`, detalle);
-    resultados[ADMIN_PHONE] = `${resultados[ADMIN_PHONE]}; informe completo falló`;
+  // ── Informe completo (cierre de caja detallado) en texto libre ─────────────
+  // Andrés es quien de verdad necesita este detalle (no solo la plantilla
+  // corta) — se lo mandamos directo. Está sujeto a la ventana de 24h de
+  // WhatsApp (no es plantilla aprobada): si falla por eso, igual le queda
+  // disponible al tocar "Ver informe completo" en la plantilla (el webhook
+  // responde con este mismo mensaje bajo demanda). Jorge lo recibe siempre
+  // como respaldo/monitoreo.
+  for (const phone of [ANDRES_PHONE, ADMIN_PHONE]) {
+    try {
+      await sendWhatsAppMessage(phone, mensaje);
+      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: phone, ok: true });
+      resultados[phone] = `${resultados[phone]}; informe completo enviado`;
+    } catch (e) {
+      const detalle = e instanceof Error ? e.message : String(e);
+      await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: phone, ok: false, error: detalle });
+      console.error(`[cierre-caja] envío fallido a ${phone}:`, detalle);
+      resultados[phone] = `${resultados[phone]}; informe completo falló (ventana 24h — disponible al tocar "Ver informe completo")`;
+    }
   }
 
   const huboExito = Object.values(resultados).some((r) => r.includes("enviad"));
