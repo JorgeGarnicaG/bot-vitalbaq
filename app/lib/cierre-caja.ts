@@ -26,6 +26,16 @@ type VentaCafeRow = {
   pagos_venta_cafeteria: PagoCafeRow[] | null;
 };
 
+type CierreCafeteriaRow = {
+  total_ventas: number;
+  total_ref: number;
+  efectivo_esperado: number;
+  transferencia_esperada: number;
+  efectivo_contado: number;
+  sobrante_faltante: number;
+  estado: string;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function construirCierreCaja(sb: SupabaseClient<any, any, any>, hoy: string) {
   // ── 1. Sesiones nutricionales (cafetería interna) ──────────────────────────
@@ -38,14 +48,6 @@ export async function construirCierreCaja(sb: SupabaseClient<any, any, any>, hoy
   const totalVentasSesiones = sesionesHoy.reduce((s, r) => s + (r.total_venta ?? 0), 0);
   const totalPacientes = sesionesHoy.reduce((s, r) => s + (r.pacientes ?? 0), 0);
 
-  const porTipo: Record<string, { venta: number; pacientes: number }> = {};
-  for (const s of sesionesHoy) {
-    const t = s.tipo_servicio ?? "Otro";
-    if (!porTipo[t]) porTipo[t] = { venta: 0, pacientes: 0 };
-    porTipo[t].venta += s.total_venta ?? 0;
-    porTipo[t].pacientes += s.pacientes ?? 0;
-  }
-
   // ── 2. Remisiones nutricionales (ventas externas por sede) ─────────────────
   const { data: remisNut } = await sb
     .from("remisiones_nutricionales")
@@ -54,12 +56,6 @@ export async function construirCierreCaja(sb: SupabaseClient<any, any, any>, hoy
 
   const remisNutHoy = remisNut ?? [];
   const totalVentasRemisNut = remisNutHoy.reduce((s, r) => s + (r.total_venta ?? 0), 0);
-
-  const porSede: Record<string, number> = {};
-  for (const r of remisNutHoy) {
-    const sede = r.sede ?? "Sin sede";
-    porSede[sede] = (porSede[sede] ?? 0) + (r.total_venta ?? 0);
-  }
 
   // ── 3. Pedidos del día ─────────────────────────────────────────────────────
   const { data: pedidos } = await sb
@@ -71,15 +67,29 @@ export async function construirCierreCaja(sb: SupabaseClient<any, any, any>, hoy
   const totalPedidos = pedidosHoy.reduce((s, p) => s + (p.total ?? 0), 0);
 
   // ── 4. Remisiones de compra recibidas hoy ─────────────────────────────────
-  const { data: remisCompra } = await sb
-    .from("remisiones")
-    .select("proveedor,valor_remision,valor_factura,estado")
-    .eq("fecha", hoy);
+  // NOTA: la tabla "remisiones" (compras) está definida en el schema.prisma
+  // del backend pero nunca se migró a la base real — no existe en producción
+  // todavía. Hasta que se cree, esta sección queda en $0 sin consultar nada.
+  const totalRemisCompra = 0;
 
-  const remisCompraHoy = remisCompra ?? [];
-  const totalRemisCompra = remisCompraHoy.reduce(
-    (s, r) => s + (r.valor_factura ?? r.valor_remision ?? 0),
-    0
+  // ── 4b. Cierres de caja por cafetería (el foco del informe) ────────────────
+  const { data: bodegasCafe } = await sb
+    .from("bodegas")
+    .select("id,nombre")
+    .ilike("nombre", "%cafeter%")
+    .eq("activa", true)
+    .order("nombre");
+
+  const cierresPorBodega = await Promise.all(
+    (bodegasCafe ?? []).map(async (b) => {
+      const { data: cierre } = await sb
+        .from("cierres_cafeteria")
+        .select("total_ventas,total_ref,efectivo_esperado,transferencia_esperada,efectivo_contado,sobrante_faltante,estado")
+        .eq("bodega_id", b.id)
+        .eq("fecha", hoy)
+        .maybeSingle();
+      return { nombre: b.nombre as string, cierre: cierre as CierreCafeteriaRow | null };
+    })
   );
 
   // ── 5. Ventas de Cafetería (BAQ / Adelita) ─────────────────────────────────
@@ -93,95 +103,41 @@ export async function construirCierreCaja(sb: SupabaseClient<any, any, any>, hoy
 
   let efectivoCafe = 0;
   let transferenciaCafe = 0;
-  const itemsCafeMap: Record<string, { cantidad: number; unidad: string; subtotal: number }> = {};
-
   for (const v of ventasCafeHoy) {
     for (const p of v.pagos_venta_cafeteria ?? []) {
       if (p.metodo === "efectivo") efectivoCafe += p.monto ?? 0;
       else if (p.metodo === "transferencia") transferenciaCafe += p.monto ?? 0;
     }
-    for (const d of v.detalle_ventas_cafeteria ?? []) {
-      if (!itemsCafeMap[d.nombre]) itemsCafeMap[d.nombre] = { cantidad: 0, unidad: d.unidad, subtotal: 0 };
-      itemsCafeMap[d.nombre].cantidad += Number(d.cantidad ?? 0);
-      itemsCafeMap[d.nombre].subtotal += Number(d.subtotal ?? 0);
-    }
   }
-
-  const itemsCafeOrdenados = Object.entries(itemsCafeMap).sort((a, b) => b[1].subtotal - a[1].subtotal);
-
-  const lineasCafeItems =
-    itemsCafeOrdenados.length > 0
-      ? itemsCafeOrdenados
-          .map(([nombre, d]) => `  • ${nombre} ×${d.cantidad} ${d.unidad} — ${cop(d.subtotal)}`)
-          .join("\n")
-      : "  Sin ventas";
 
   // ── Construir mensaje ──────────────────────────────────────────────────────
   const totalIngresosHoy = totalVentasSesiones + totalVentasRemisNut + totalVentasCafe;
 
-  const lineasTipo =
-    Object.entries(porTipo).length > 0
-      ? Object.entries(porTipo)
-          .map(([tipo, d]) => `  • ${tipo}: ${cop(d.venta)} · ${d.pacientes} pac.`)
-          .join("\n")
-      : "  Sin registros";
+  // ── Líneas por cafetería: cerrada (con números) o alerta de no-cierre ──────
+  const lineasCierres = cierresPorBodega.flatMap(({ nombre, cierre }) => {
+    if (!cierre) {
+      return [`🏪 *${nombre}*`, `⚠️ *No se cerró la caja hoy*`, ``];
+    }
+    const cuadrada = Math.round(cierre.sobrante_faltante) === 0;
+    return [
+      `🏪 *${nombre}*`,
+      cuadrada ? `✅ Caja cerrada — cuadrada` : `⚠️ Caja cerrada — descuadre de ${cop(cierre.sobrante_faltante)}`,
+      `• Ventas: ${cierre.total_ventas} · Total: ${cop(cierre.total_ref)}`,
+      `• Efectivo: ${cop(cierre.efectivo_esperado)} · Transferencia: ${cop(cierre.transferencia_esperada)}`,
+      ``,
+    ];
+  });
 
-  const lineasSede =
-    Object.entries(porSede).length > 0
-      ? Object.entries(porSede)
-          .map(([sede, venta]) => `  • ${sede}: ${cop(venta)}`)
-          .join("\n")
-      : "  Sin remisiones";
-
-  const lineasPedidos =
-    pedidosHoy.length > 0
-      ? pedidosHoy
-          .map((p) => `  • ${p.codigo ?? "—"} · ${p.proveedor_nombre ?? "Proveedor"} · ${p.estado}`)
-          .join("\n")
-      : "  Sin pedidos";
-
-  const lineasRemisCompra =
-    remisCompraHoy.length > 0
-      ? remisCompraHoy
-          .map((r) => `  • ${r.proveedor ?? "Proveedor"} · ${r.estado} · ${cop(r.valor_factura ?? r.valor_remision ?? 0)}`)
-          .join("\n")
-      : "  Sin remisiones";
+  const totalCierresHoy = cierresPorBodega.reduce((s, c) => s + (c.cierre?.total_ref ?? 0), 0);
 
   const mensaje = [
-    `📊 *CIERRE DE CAJA — VitalBAQ*`,
+    `💰 *CIERRE DE CAJA — VitalBAQ*`,
     `📅 ${fechaLegible(hoy)}`,
     `━━━━━━━━━━━━━━━━━━━━━━━━`,
     ``,
-    `🥗 *CAFETERÍA*`,
-    `• Sesiones: ${sesionesHoy.length} · Pacientes: ${totalPacientes}`,
-    `• Ventas internas: ${cop(totalVentasSesiones)}`,
-    ``,
-    `Por servicio:`,
-    lineasTipo,
-    ``,
-    `🏥 *REMISIONES NUTRICIONALES*`,
-    `• Ventas externas: ${cop(totalVentasRemisNut)}`,
-    lineasSede,
-    ``,
-    `🧃 *CAFETERÍA BAQ / ADELITA (${ventasCafeHoy.length} ventas)*`,
-    lineasCafeItems,
-    ventasCafeHoy.length > 0
-      ? `• Total: ${cop(totalVentasCafe)} — Efectivo: ${cop(efectivoCafe)} · Transferencia: ${cop(transferenciaCafe)}`
-      : "",
-    ``,
-    `📦 *PEDIDOS DEL DÍA (${pedidosHoy.length})*`,
-    lineasPedidos,
-    pedidosHoy.length > 0 ? `• Total pedidos: ${cop(totalPedidos)}` : "",
-    ``,
-    `🚚 *REMISIONES DE COMPRA (${remisCompraHoy.length})*`,
-    lineasRemisCompra,
-    remisCompraHoy.length > 0 ? `• Total compras: ${cop(totalRemisCompra)}` : "",
-    ``,
+    ...lineasCierres,
     `━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `💰 *RESUMEN EJECUTIVO*`,
-    `• Total ingresos: ${cop(totalIngresosHoy)}`,
-    `• Total compras:  ${cop(totalRemisCompra)}`,
-    `• Balance:        ${cop(totalIngresosHoy - totalRemisCompra)}`,
+    `💰 Total ingresos del día: ${cop(totalCierresHoy)}`,
     ``,
     `_VitalBAQ Bot · Generado automáticamente_`,
   ]
