@@ -16,9 +16,11 @@ const ANDRES_PHONE = "573013379407";
 
 // Andrés casi nunca le escribe al bot, así que el texto libre se pierde por
 // la ventana de 24 h de WhatsApp (error 131047). A él se le envía una
-// plantilla aprobada por Meta — esas se entregan siempre — con el resumen
-// de toda la operación; si responde VER, el webhook le manda el detalle.
-const PLANTILLA_CIERRE = "informe_diario_vitalbaq";
+// plantilla aprobada por Meta — esas se entregan siempre — con el cierre de
+// caja de las dos cafeterías ya incluido. Si responde algo, se abre la
+// ventana de 24h y el bot puede seguir la conversación con más detalle
+// (vía el flujo normal del webhook, sin necesitar un botón en la plantilla).
+const PLANTILLA_CIERRE = "cierre_caja_vitalbaq";
 
 /**
  * Quién recibe la plantilla oficial (no el texto libre). Además de Andrés
@@ -45,24 +47,20 @@ export async function GET(request: NextRequest) {
   const sb = getSupabaseClient();
   const hoy = hoyBogota();
 
-  const { mensaje, resumen } = await construirCierreCaja(sb, hoy);
+  const { mensaje, resumen, cierresParaPlantilla } = await construirCierreCaja(sb, hoy);
   const resultados: Record<string, string> = {};
 
-  // Los 12 parámetros deben coincidir 1 a 1 con las variables {{1}}..{{12}}
-  // de la plantilla aprobada en Meta.
+  // Los 6 parámetros deben coincidir 1 a 1 con las variables {{1}}..{{6}} de
+  // la plantilla "cierre_caja_vitalbaq" aprobada en Meta: fecha, nombre y
+  // estado de la cafetería 1, nombre y estado de la cafetería 2, total del día.
+  const [cafe1, cafe2] = cierresParaPlantilla;
   const parametrosPlantilla = [
     fechaLegible(hoy),
-    String(resumen.sesiones),
-    String(resumen.pacientes),
-    cop(resumen.ventas_internas),
-    cop(resumen.ventas_externas),
-    String(resumen.ventas_cafeteria_num),
-    cop(resumen.ventas_cafeteria),
-    String(resumen.pedidos),
-    cop(resumen.pedidos_valor),
-    cop(resumen.total_compras),
-    cop(resumen.total_ingresos),
-    cop(resumen.total_ingresos - resumen.total_compras),
+    cafe1?.nombre ?? "—",
+    cafe1?.estado ?? "⚠️ Sin datos",
+    cafe2?.nombre ?? "—",
+    cafe2?.estado ?? "⚠️ Sin datos",
+    cop(resumen.total_cierres_caja),
   ];
 
   // ── Plantilla oficial: entrega garantizada sin ventana de 24 h ─────────────
@@ -103,14 +101,14 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // ── Informe completo (cierre de caja detallado) en texto libre ─────────────
-  // Andrés es quien de verdad necesita este detalle (no solo la plantilla
-  // corta) — se lo mandamos directo. Está sujeto a la ventana de 24h de
-  // WhatsApp (no es plantilla aprobada): si falla por eso, igual le queda
-  // disponible al tocar "Ver informe completo" en la plantilla (el webhook
-  // responde con este mismo mensaje bajo demanda). Jorge lo recibe siempre
-  // como respaldo/monitoreo.
-  for (const phone of [ANDRES_PHONE, ADMIN_PHONE]) {
+  // ── Informe completo (texto libre) — solo para Jorge, como respaldo ────────
+  // La plantilla "cierre_caja_vitalbaq" ya le manda a Andrés el cierre de
+  // caja completo de las dos cafeterías, así que no hace falta duplicárselo
+  // por texto libre (que además fallaría casi siempre por la ventana de 24h,
+  // ya que él no le escribe seguido al bot). Si Andrés responde algo al
+  // mensaje, se abre esa ventana y el webhook puede seguirle respondiendo
+  // con más detalle de forma normal.
+  for (const phone of [ADMIN_PHONE]) {
     try {
       await sendWhatsAppMessage(phone, mensaje);
       await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: phone, ok: true });
@@ -119,7 +117,7 @@ export async function GET(request: NextRequest) {
       const detalle = e instanceof Error ? e.message : String(e);
       await registrarEnvio(sb, { tipo: "cierre-caja", destinatario: phone, ok: false, error: detalle });
       console.error(`[cierre-caja] envío fallido a ${phone}:`, detalle);
-      resultados[phone] = `${resultados[phone]}; informe completo falló (ventana 24h — disponible al tocar "Ver informe completo")`;
+      resultados[phone] = `${resultados[phone]}; informe completo falló (ventana 24h cerrada)`;
     }
   }
 

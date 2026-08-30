@@ -130,6 +130,18 @@ export async function construirCierreCaja(sb: SupabaseClient<any, any, any>, hoy
 
   const totalCierresHoy = cierresPorBodega.reduce((s, c) => s + (c.cierre?.total_ref ?? 0), 0);
 
+  // ── Estado de cada cafetería en una sola línea, para la plantilla de WhatsApp
+  //    "cierre_caja_vitalbaq" (variables {{2}}/{{3}} y {{4}}/{{5}} = nombre/estado
+  //    de cada una de las 2 cafeterías, en el mismo orden que bodegasCafe).
+  const cierresParaPlantilla = cierresPorBodega.map(({ nombre, cierre }) => {
+    if (!cierre) return { nombre, estado: "⚠️ No se cerró la caja hoy" };
+    const cuadrada = Math.round(cierre.sobrante_faltante) === 0;
+    const estadoTexto = cuadrada
+      ? `✅ Cerrada — cuadrada · ${cierre.total_ventas} ventas · ${cop(cierre.total_ref)}`
+      : `⚠️ Cerrada — descuadre de ${cop(cierre.sobrante_faltante)} · ${cierre.total_ventas} ventas · ${cop(cierre.total_ref)}`;
+    return { nombre, estado: estadoTexto };
+  });
+
   const mensaje = [
     `💰 *CIERRE DE CAJA — VitalBAQ*`,
     `📅 ${fechaLegible(hoy)}`,
@@ -146,6 +158,7 @@ export async function construirCierreCaja(sb: SupabaseClient<any, any, any>, hoy
 
   return {
     mensaje,
+    cierresParaPlantilla,
     resumen: {
       sesiones: sesionesHoy.length,
       pacientes: totalPacientes,
@@ -157,6 +170,7 @@ export async function construirCierreCaja(sb: SupabaseClient<any, any, any>, hoy
       cafeteria_transferencia: transferenciaCafe,
       total_ingresos: totalIngresosHoy,
       total_compras: totalRemisCompra,
+      total_cierres_caja: totalCierresHoy,
       pedidos: pedidosHoy.length,
       pedidos_valor: totalPedidos,
     },
